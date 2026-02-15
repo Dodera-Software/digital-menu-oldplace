@@ -18,7 +18,8 @@ const CafeAdmin = () => {
     logoUrl: '',
     address: '',
     openingTime: '',
-    closingTime: ''
+    closingTime: '',
+    slogan: ''
   });
 
   // Categories State
@@ -477,6 +478,18 @@ const CafeAdmin = () => {
                     onChange={(e) => handleCafeDetailsChange('name', e.target.value)}
                     className="w-full px-4 py-3 border border-amber-200/60 rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-transparent transition-all"
                     placeholder="Cafe name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-amber-900 mb-2">
+                    Slogan
+                  </label>
+                  <input
+                    type="text"
+                    value={cafeDetails.slogan}
+                    onChange={(e) => handleCafeDetailsChange('slogan', e.target.value)}
+                    className="w-full px-4 py-3 border border-amber-200/60 rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-transparent transition-all"
+                    placeholder="Slogan..."
                   />
                 </div>
 
