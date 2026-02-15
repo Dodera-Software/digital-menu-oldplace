@@ -68,16 +68,8 @@ const CafeAdmin = () => {
 
   // Helper: Show toast notification
   const showToast = (message, type = 'success') => {
-    toast[type](message, {
-      position: 'top-right',
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true
-    });
+    toast[type](message);
   };
-
   // Handle logo file upload
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];

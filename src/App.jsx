@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router"
 import CafeMenu from "./features/menu/CafeMenu"
 import CafeAdmin from "./features/management/CafeAdmin"
+import { CafeLoader } from "./features/loader/CafeLoader"
 
 function App() {
 

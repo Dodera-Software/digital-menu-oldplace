@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Heart, Search, Moon, Sun } from 'lucide-react';
+import supabase from '../../utils/supabase'
+import { CafeLoader } from '../loader/CafeLoader';
 
 const CafeMenu = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -7,131 +9,48 @@ const CafeMenu = () => {
   const [favorites, setFavorites] = useState(new Set());
   const [darkMode, setDarkMode] = useState(false);
 
-  const menuItems = [
-    {
-      id: 1,
-      name: 'Espresso',
-      category: 'Hot Drinks',
-      description: 'Rich and bold single shot of pure coffee',
-      price: '$3.50',
-      image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=300&fit=crop'
-    },
-    {
-      id: 2,
-      name: 'Cappuccino',
-      category: 'Hot Drinks',
-      description: 'Creamy blend of espresso and steamed milk',
-      price: '$4.50',
-      image: 'https://images.unsplash.com/photo-1515432891733-10e5e5f35e90?w=400&h=300&fit=crop'
-    },
-    {
-      id: 3,
-      name: 'Latte Macchiato',
-      category: 'Hot Drinks',
-      description: 'Silky smooth espresso with velvety microfoam',
-      price: '$4.75',
-      image: 'https://images.unsplash.com/photo-1517668808822-9ebb02ae2a0e?w=400&h=300&fit=crop'
-    },
-    {
-      id: 4,
-      name: 'Iced Latte',
-      category: 'Cold Drinks',
-      description: 'Chilled espresso with cold milk and ice',
-      price: '$4.50',
-      image: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=400&h=300&fit=crop'
-    },
-    {
-      id: 5,
-      name: 'Cold Brew',
-      category: 'Cold Drinks',
-      description: 'Smooth, less acidic coffee steeped overnight',
-      price: '$3.75',
-      image: 'https://images.unsplash.com/photo-1517701550927-30cf4ba36d5d?w=400&h=300&fit=crop'
-    },
-    {
-      id: 6,
-      name: 'Matcha Latte',
-      category: 'Cold Drinks',
-      description: 'Vibrant green tea with creamy cold milk',
-      price: '$5.25',
-      image: 'https://images.unsplash.com/photo-1593642632659-0c46e4050cdb?w=400&h=300&fit=crop'
-    },
-    {
-      id: 7,
-      name: 'Croissant',
-      category: 'Pastries',
-      description: 'Buttery, flaky, and perfectly golden',
-      price: '$3.75',
-      image: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&h=300&fit=crop'
-    },
-    {
-      id: 8,
-      name: 'Chocolate Croissant',
-      category: 'Pastries',
-      description: 'Rich dark chocolate in a crispy pastry shell',
-      price: '$4.25',
-      image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&h=300&fit=crop'
-    },
-    {
-      id: 9,
-      name: 'Blueberry Muffin',
-      category: 'Pastries',
-      description: 'Fresh blueberries baked into fluffy goodness',
-      price: '$3.50',
-      image: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&h=300&fit=crop'
-    },
-    {
-      id: 10,
-      name: 'Almond Biscotti',
-      category: 'Pastries',
-      description: 'Crispy Italian biscuit with roasted almonds',
-      price: '$2.75',
-      image: 'https://images.unsplash.com/photo-1590080876-0fe60184a0c9?w=400&h=300&fit=crop'
-    },
-    {
-      id: 11,
-      name: 'Granola Bowl',
-      category: 'Snacks',
-      description: 'Crunchy granola with yogurt and fresh berries',
-      price: '$6.50',
-      image: 'https://images.unsplash.com/photo-1584268545271-dca811eaaa16?w=400&h=300&fit=crop'
-    },
-    {
-      id: 12,
-      name: 'Avocado Toast',
-      category: 'Snacks',
-      description: 'Smashed avocado on artisan sourdough',
-      price: '$7.50',
-      image: 'https://images.unsplash.com/photo-1612185807605-121f87b29e64?w=400&h=300&fit=crop'
-    },
-    {
-      id: 13,
-      name: 'Mixed Nuts',
-      category: 'Snacks',
-      description: 'Roasted almonds, cashews, and walnuts',
-      price: '$4.00',
-      image: 'https://images.unsplash.com/photo-1585518419759-59e84c34e01c?w=400&h=300&fit=crop'
-    },
-    {
-      id: 14,
-      name: 'Hummus & Veggies',
-      category: 'Snacks',
-      description: 'Fresh vegetables with creamy hummus dip',
-      price: '$5.75',
-      image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&h=300&fit=crop'
+  const [menuItems, setMenuItems] = useState([])
+
+useEffect(() => {
+  async function fetchMenu() {
+    const { data, error } = await supabase
+      .from('menuItems')
+      .select(`
+        *,
+        categories (
+          name
+        )
+      `)
+    
+    if (error) {
+      console.error(error)
+    } else {
+      // Transform data: replace category_id with category name
+      const menuWithCategoryNames = data?.map(item => ({
+        ...item,
+        category: item.categories?.name || 'Uncategorized',
+        // Remove the nested categories object and category_id if you want
+        // category_id: undefined,
+        // categories: undefined
+      })) || []
+      
+      setMenuItems(menuWithCategoryNames)
     }
-  ];
+  }
+  
+  fetchMenu()
+}, [])
+
+
 
   const categories = ['All', 'Hot Drinks', 'Cold Drinks', 'Pastries', 'Snacks'];
 
-  const filteredItems = useMemo(() => {
-    return menuItems.filter(item => {
+  const filteredItems = menuItems.filter(item => {
       const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = item?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item?.description?.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesCategory && matchesSearch;
-    });
-  }, [searchTerm, activeCategory]);
+    });;
 
   const toggleFavorite = (id) => {
     const newFavorites = new Set(favorites);
@@ -144,6 +63,7 @@ const CafeMenu = () => {
   };
 
   return (
+    menuItems.length > 0 ? 
     <div className={`min-h-screen transition-colors duration-300 ${
       darkMode 
         ? 'bg-gradient-to-br from-amber-950 via-amber-900 to-orange-950' 
@@ -378,7 +298,7 @@ const CafeMenu = () => {
           <p className="mt-2">Enjoy your visit! ☕</p>
         </div>
       </footer>
-    </div>
+    </div> : <CafeLoader />
   );
 };
 
