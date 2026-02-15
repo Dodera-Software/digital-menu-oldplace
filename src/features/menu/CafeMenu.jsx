@@ -272,10 +272,10 @@ const CafeMenu = () => {
           {/* Dark Mode Toggle - Luxe Style */}
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className={`p-3 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 backdrop-blur-md group ${
+            className={`backdrop-blur-xl p-3 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 backdrop-blur-md group ${
               darkMode
-                ? "bg-amber-900/40 hover:bg-amber-800/60 border border-amber-700/40 text-amber-300 focus:ring-amber-500 focus:ring-offset-slate-950"
-                : "bg-white/40 hover:bg-white/60 border border-amber-200/40 text-amber-700 focus:ring-amber-400 focus:ring-offset-white"
+                ? "border border-amber-700/40 text-amber-300 focus:ring-amber-500 focus:ring-offset-slate-950"
+                : "border border-amber-200/40 text-amber-700 focus:ring-amber-400 focus:ring-offset-white"
             }`}
             aria-label="Toggle dark mode"
           >
