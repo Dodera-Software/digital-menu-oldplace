@@ -11,6 +11,7 @@ const CafeMenu = () => {
 
   const [menuItems, setMenuItems] = useState([]);
   const [cafeDetails, setCafeDetails] = useState({});
+  const [categories, setCategories] = useState([])
 
   useEffect(() => {
     async function fetchMenu() {
@@ -49,11 +50,26 @@ const CafeMenu = () => {
         setCafeDetails(details[0]);
       }
     }
+    async function fetchCategories() {
+      const { data: categoriesData, error } = await supabase
+        .from("categories")
+        .select(`*`)
+
+      if (error) {
+        console.error(error);
+      } else {
+        const categoriesResult = categoriesData.map((category) => {
+          return category.name
+        })
+        let result = ['All', ...categoriesResult]
+        setCategories(result)
+      }
+    }
+    fetchCategories()
     fetchDetails();
     fetchMenu();
   }, []);
 
-  const categories = ["All", "Hot Drinks", "Cold Drinks", "Pastries", "Snacks"];
 
   const filteredItems = menuItems.filter((item) => {
     const matchesCategory =
