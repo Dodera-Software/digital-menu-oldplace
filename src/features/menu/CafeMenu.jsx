@@ -292,33 +292,7 @@ const CafeMenu = () => {
         {/* Search & Filter Section */}
         <div className="space-y-8 mb-12">
           {/* Search Bar - Luxe */}
-          <div className="relative group">
-            <div
-              className={`absolute inset-0 rounded-2xl blur-lg transition-all duration-300 opacity-0 group-focus-within:opacity-100 ${
-                darkMode
-                  ? "bg-amber-600/20"
-                  : "bg-amber-400/20"
-              }`}
-            />
-            <div className="relative flex items-center">
-              <Search
-                className={`absolute left-5 w-5 h-5 pointer-events-none transition-colors ${
-                  darkMode ? "text-amber-500/50" : "text-amber-600/40"
-                }`}
-              />
-              <input
-                type="text"
-                placeholder="Search by name, description..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full pl-14 pr-6 py-4 md:py-5 rounded-2xl border-2 transition-all duration-300 focus:outline-none font-light text-lg backdrop-blur-sm ${
-                  darkMode
-                    ? "bg-slate-800/60 border-amber-600/30 hover:border-amber-500/40 focus:border-amber-500 text-white placeholder:text-amber-300/40 focus:bg-slate-800/90"
-                    : "bg-white/70 border-amber-200/40 hover:border-amber-300/60 focus:border-amber-400 text-slate-900 placeholder:text-amber-600/30 focus:bg-white"
-                }`}
-              />
-            </div>
-          </div>
+          
 
           {/* Category Filter - Elegant Chips */}
           <div className="flex gap-3 overflow-x-auto pb-2 sm:pb-0 sm:flex-wrap scroll-smooth">
