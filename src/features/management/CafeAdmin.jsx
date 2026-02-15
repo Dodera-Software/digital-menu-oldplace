@@ -381,7 +381,7 @@ const CafeAdmin = () => {
       image: item.image || ''
     });
     setEditingId(item.id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 1200, behavior: 'smooth' });
   };
 
   const handleDeleteItem = async (id) => {
@@ -626,14 +626,14 @@ const CafeAdmin = () => {
                             setEditingCategoryName(category.name);
                           }}
                           disabled={isSaving}
-                          className="p-2 hover:bg-blue-100 rounded transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                          className="p-2  hover:bg-blue-100 rounded transition-colors  group-hover:opacity-100 disabled:opacity-50"
                         >
                           <Edit2 className="w-4 h-4 text-blue-600" />
                         </button>
                         <button
                           onClick={() => handleDeleteCategory(category.id)}
                           disabled={isSaving}
-                          className="p-2 hover:bg-red-100 rounded transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                          className="p-2 hover:bg-red-100 rounded transition-colors  group-hover:opacity-100 disabled:opacity-50"
                         >
                           <X className="w-4 h-4 text-red-600" />
                         </button>
