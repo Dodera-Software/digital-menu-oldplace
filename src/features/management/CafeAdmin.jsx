@@ -1,11 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Trash2, Plus, Edit2, X, Check, AlertCircle, Upload, Loader } from 'lucide-react';
+﻿import React, { useState, useEffect } from 'react';
+import { Trash2, Plus, Edit2, X, Check, AlertCircle, Upload, Loader, ChevronDown, ChevronRight, ChevronUp, LogOut } from 'lucide-react';
 import { CafeLoader } from '../loader/CafeLoader'
+import { useNavigate } from 'react-router';
 import supabase from '../../utils/supabase'
 
-const BUCKET_NAME = 'images'; // Update with your bucket name
+const BUCKET_NAME = 'images';
+
+const DEFAULT_HOURS = [
+  { day: 'Mon – Fri', time: '7:30 am – 12 am' },
+  { day: 'Saturday', time: '10 am – 1 am' },
+  { day: 'Sunday', time: '10 am – 12 am' },
+];
 
 const CafeAdmin = () => {
+  const navigate = useNavigate();
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -17,9 +25,8 @@ const CafeAdmin = () => {
     name: '',
     logoUrl: '',
     address: '',
-    openingTime: '',
-    closingTime: '',
-    slogan: ''
+    slogan: '',
+    hours: DEFAULT_HOURS
   });
 
   // Categories State
@@ -43,6 +50,28 @@ const CafeAdmin = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [errors, setErrors] = useState({});
   const [errorMessage, setErrorMessage] = useState('');
+  const [collapsedCategories, setCollapsedCategories] = useState(new Set());
+  const [showItemForm, setShowItemForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showAllItems, setShowAllItems] = useState(false);
+
+  const toggleCategory = (catId) => {
+    setCollapsedCategories(prev => {
+      const next = new Set(prev);
+      next.has(catId) ? next.delete(catId) : next.add(catId);
+      return next;
+    });
+  };
+
+  const handleOpenAddForm = () => {
+    setFormState({ name: '', category: categories[0]?.id || '', price: '', description: '', image: '' });
+    setEditingId(null);
+    setErrors({});
+    setShowItemForm(true);
+  };
 
   // Load all data on component mount
   useEffect(() => {
@@ -66,7 +95,10 @@ const CafeAdmin = () => {
       }
 
       if (cafeData) {
-        setCafeDetails(cafeData);
+        const hours = Array.isArray(cafeData.hours) && cafeData.hours.length > 0
+          ? cafeData.hours
+          : DEFAULT_HOURS;
+        setCafeDetails({ ...cafeData, hours });
       }
 
       // Load categories
@@ -86,7 +118,7 @@ const CafeAdmin = () => {
       // Load menu items
       const { data: itemsData, error: itemsError } = await supabase
         .from('menuItems')
-        .select('*')
+        .select('*, categories(id, name)')
 
       if (itemsError) throw itemsError;
       setMenuItems(itemsData || []);
@@ -119,22 +151,24 @@ const CafeAdmin = () => {
       setErrorMessage('');
 
       let result;
+      const hoursForDB = (cafeDetails.hours || []).filter(h => h.day.trim() && h.time.trim());
+      const dataToSave = { ...cafeDetails, hours: hoursForDB };
       if (cafeDetails.id) {
         // Update existing
         result = await supabase
           .from('cafeDetails')
-          .update(cafeDetails)
+          .update(dataToSave)
           .eq('id', cafeDetails.id);
       } else {
         // Insert new
         result = await supabase
           .from('cafeDetails')
-          .insert([cafeDetails])
+          .insert([dataToSave])
           .select()
           .single();
 
         if (result.data) {
-          setCafeDetails(result.data);
+          setCafeDetails(prev => ({ ...prev, id: result.data.id }));
         }
       }
 
@@ -301,7 +335,6 @@ const CafeAdmin = () => {
     if (!formState.name.trim()) newErrors.name = 'Name is required';
     if (!formState.category) newErrors.category = 'Category is required';
     if (!formState.price.trim()) newErrors.price = 'Price is required';
-    if (!formState.description.trim()) newErrors.description = 'Description is required';
     return newErrors;
   };
 
@@ -364,6 +397,7 @@ const CafeAdmin = () => {
       });
       setEditingId(null);
       setErrors({});
+      setShowItemForm(false);
     } catch (error) {
       console.error('Error saving item:', error);
       setErrorMessage(error.message || 'Failed to save item');
@@ -375,13 +409,14 @@ const CafeAdmin = () => {
   const handleEditItem = (item) => {
     setFormState({
       name: item.name,
-      category: item.category_id,
+      category: String(item.category_id),
       price: item.price,
-      description: item.description,
+      description: item.description || '',
       image: item.image || ''
     });
     setEditingId(item.id);
-    window.scrollTo({ top: 1200, behavior: 'smooth' });
+    setErrors({});
+    setShowItemForm(true);
   };
 
   const handleDeleteItem = async (id) => {
@@ -418,6 +453,7 @@ const CafeAdmin = () => {
     });
     setEditingId(null);
     setErrors({});
+    setShowItemForm(false);
   };
 
   // Get category name by id
@@ -429,478 +465,441 @@ const CafeAdmin = () => {
     return <CafeLoader fullScreen={true} message="Loading admin dashboard..." />;
   }
 
+
+  const inputStyle = {
+    borderColor: 'rgba(139,94,60,0.25)',
+    background: 'rgba(139,94,60,0.03)',
+    color: '#3d2010',
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50">
+    <div className="min-h-screen" style={{ background: '#FFF2D7' }}>
       {/* Header */}
-      <header className="bg-white/70 backdrop-blur-md border-b border-amber-100/50 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl md:text-4xl font-serif text-amber-900">
-            Ava Admin Dashboard
-          </h1>
-          <p className="text-amber-700 text-sm mt-1">Manage your cafe and menu</p>
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-sm" style={{ borderBottom: '1px solid rgba(139,94,60,0.12)' }}>
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-serif" style={{ color: '#8B5E3C' }}>Admin Dashboard</h1>
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all hover:shadow-sm active:scale-95"
+            style={{ background: 'rgba(139,94,60,0.08)', color: '#8B5E3C' }}
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Log out</span>
+          </button>
         </div>
       </header>
 
-      {/* Success Message */}
+      {/* Toasts */}
       {successMessage && (
-        <div className="fixed top-4 right-4 bg-green-500/90 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 z-40 animate-in fade-in slide-in-from-top-4">
-          <Check className="w-5 h-5" />
-          {successMessage}
+        <div className="fixed top-4 right-4 left-4 sm:left-auto sm:w-auto z-50 bg-green-500 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2">
+          <Check className="w-4 h-4 shrink-0" />
+          <span className="text-sm">{successMessage}</span>
         </div>
       )}
-
-      {/* Error Message */}
       {errorMessage && (
-        <div className="fixed top-4 right-4 bg-red-500/90 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 z-40 animate-in fade-in slide-in-from-top-4">
-          <AlertCircle className="w-5 h-5" />
-          {errorMessage}
+        <div className="fixed top-4 right-4 left-4 sm:left-auto sm:w-auto z-50 bg-red-500 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span className="text-sm">{errorMessage}</span>
         </div>
       )}
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Cafe Details + Categories */}
-          <div className="lg:col-span-1 space-y-8">
-            {/* Cafe Details Card */}
-            <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-amber-100/40">
-              <h2 className="text-2xl font-serif text-amber-900 mb-6">Cafe Details</h2>
+      <main className="max-w-2xl mx-auto px-4 py-6 pb-16 space-y-3">
 
-              <form onSubmit={handleSaveCafeDetails} className="space-y-5">
-                {/* Cafe Name */}
-                <div>
-                  <label className="block text-sm font-medium text-amber-900 mb-2">
-                    Cafe Name
-                  </label>
+        {/* Cafe Details */}
+        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6" style={{ border: '1px solid rgba(139,94,60,0.12)' }}>
+          <h2 className="text-lg font-serif font-semibold mb-4" style={{ color: '#3d2010' }}>Cafe Details</h2>
+          <div>
+            <form onSubmit={handleSaveCafeDetails} className="space-y-4">
+              {[
+                { label: 'Name', field: 'name', placeholder: 'Cafe name' },
+                { label: 'Slogan', field: 'slogan', placeholder: 'Your slogan' },
+                { label: 'Address', field: 'address', placeholder: 'Street address' },
+              ].map(({ label, field, placeholder }) => (
+                <div key={field}>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: '#8B5E3C' }}>{label}</label>
                   <input
                     type="text"
-                    value={cafeDetails.name}
-                    onChange={(e) => handleCafeDetailsChange('name', e.target.value)}
-                    className="w-full px-4 py-3 border border-amber-200/60 rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-transparent transition-all"
-                    placeholder="Cafe name"
+                    value={cafeDetails[field] || ''}
+                    onChange={(e) => handleCafeDetailsChange(field, e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all"
+                    style={inputStyle}
+                    placeholder={placeholder}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-amber-900 mb-2">
-                    Slogan
-                  </label>
-                  <input
-                    type="text"
-                    value={cafeDetails.slogan}
-                    onChange={(e) => handleCafeDetailsChange('slogan', e.target.value)}
-                    className="w-full px-4 py-3 border border-amber-200/60 rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-transparent transition-all"
-                    placeholder="Slogan..."
-                  />
-                </div>
-
-                {/* Logo URL with Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-amber-900 mb-2">
-                    Logo
-                  </label>
-                  <div className="space-y-3">
-                    <div className="relative">
+              ))}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: '#8B5E3C' }}>Opening Hours</label>
+                <div className="space-y-2">
+                  {(cafeDetails.hours || []).map((h, i) => (
+                    <div key={i} className="flex items-center gap-2">
                       <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(e, true)}
-                        disabled={isUploadingImage}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                        aria-label="Upload logo"
+                        type="text"
+                        value={h.day}
+                        onChange={(e) => setCafeDetails(prev => { const hrs = [...prev.hours]; hrs[i] = { ...hrs[i], day: e.target.value }; return { ...prev, hours: hrs }; })}
+                        disabled={isSaving}
+                        placeholder="e.g. Mon – Fri"
+                        className="w-28 shrink-0 px-3 py-2.5 rounded-xl text-sm border outline-none transition-all"
+                        style={inputStyle}
                       />
-                      <div className="px-4 py-3 border-2 border-dashed border-amber-300/60 rounded-lg bg-amber-50/50 flex items-center justify-center gap-2 hover:bg-amber-100/30 transition-colors">
-                        {isUploadingImage ? (
-                          <Loader className="w-5 h-5 text-amber-600 animate-spin" />
-                        ) : (
-                          <>
-                            <Upload className="w-5 h-5 text-amber-600" />
-                            <span className="text-sm text-amber-900">Click to upload logo</span>
-                          </>
-                        )}
-                      </div>
+                      <input
+                        type="text"
+                        value={h.time}
+                        onChange={(e) => setCafeDetails(prev => { const hrs = [...prev.hours]; hrs[i] = { ...hrs[i], time: e.target.value }; return { ...prev, hours: hrs }; })}
+                        disabled={isSaving}
+                        placeholder="e.g. 8 am – 12 am"
+                        className="flex-1 px-3 py-2.5 rounded-xl text-sm border outline-none transition-all"
+                        style={inputStyle}
+                      />
                     </div>
-                    {cafeDetails.logoUrl && (
-                      <img
-                        src={cafeDetails.logoUrl}
-                        alt="Logo preview"
-                        className="h-16 w-16 object-cover rounded-lg border border-amber-200/60"
-                        onError={() => handleCafeDetailsChange('logoUrl', '')}
-                      />
-                    )}
-                  </div>
-                </div>
+                  ))}
 
-                {/* Address */}
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="w-full py-3 rounded-xl text-white text-sm font-medium transition-all hover:shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ backgroundColor: '#8B5E3C' }}
+              >
+                {isSaving && <Loader className="w-4 h-4 animate-spin" />}
+                Save Details
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Categories */}
+        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6" style={{ border: '1px solid rgba(139,94,60,0.12)' }}>
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <h2 className="text-lg font-serif font-semibold min-w-0" style={{ color: '#3d2010' }}>
+              Categories
+              <span className="ml-1.5 text-sm font-sans font-normal" style={{ color: 'rgba(139,94,60,0.5)' }}>({categories.length})</span>
+            </h2>
+            <button
+              onClick={() => { setShowCategoryForm(v => !v); setNewCategory(''); }}
+              className="flex items-center gap-1.5 px-3 py-2 sm:px-4 rounded-xl text-white text-sm font-medium shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
+              style={{ backgroundColor: '#8B5E3C' }}
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Add Category</span>
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="relative mb-4">
+            <input
+              type="text"
+              value={categorySearch}
+              onChange={(e) => setCategorySearch(e.target.value)}
+              placeholder="Search categories..."
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border outline-none transition-all"
+              style={{ borderColor: 'rgba(139,94,60,0.2)', background: 'rgba(139,94,60,0.02)', color: '#3d2010' }}
+            />
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: 'rgba(139,94,60,0.4)' }}>
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            {categorySearch && (
+              <button onClick={() => setCategorySearch('')} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(139,94,60,0.4)' }}>
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {showCategoryForm && (
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { handleAddCategory(); setShowCategoryForm(false); } if (e.key === 'Escape') setShowCategoryForm(false); }}
+                disabled={isSaving}
+                autoFocus
+                className="flex-1 px-4 py-2.5 rounded-xl text-sm border outline-none transition-all disabled:opacity-50"
+                style={inputStyle}
+                placeholder="New category name"
+              />
+              <button
+                onClick={() => { handleAddCategory(); setShowCategoryForm(false); }}
+                disabled={isSaving}
+                className="px-4 py-2.5 rounded-xl text-white disabled:opacity-50 hover:shadow-md transition-all"
+                style={{ backgroundColor: '#8B5E3C' }}
+              >
+                <Check className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setShowCategoryForm(false)}
+                disabled={isSaving}
+                className="px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all"
+                style={{ background: 'rgba(139,94,60,0.08)', color: '#8B5E3C' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="space-y-2 mb-4">
+            {(() => {
+              const filtered = categories.filter(c => c.name.toLowerCase().includes(categorySearch.toLowerCase()));
+              const LIMIT = 4;
+              const visible = (showAllCategories || categorySearch) ? filtered : filtered.slice(0, LIMIT);
+              const hidden = filtered.length - LIMIT;
+              return (
+                <>
+                  {visible.map((category) => (
+                    <div key={category.id} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border" style={{ borderColor: 'rgba(139,94,60,0.15)', background: 'rgba(139,94,60,0.02)' }}>
+                      {editingCategoryId === category.id ? (
+                        <>
+                          <input
+                            type="text"
+                            value={editingCategoryName}
+                            onChange={(e) => setEditingCategoryName(e.target.value)}
+                            className="flex-1 px-2 py-1 text-sm rounded-lg border outline-none"
+                            style={{ borderColor: 'rgba(139,94,60,0.3)', color: '#3d2010' }}
+                            autoFocus
+                          />
+                          <button onClick={() => handleUpdateCategory(category.id)} disabled={isSaving} className="p-1.5 rounded-lg hover:bg-green-50 disabled:opacity-50">
+                            <Check className="w-4 h-4 text-green-600" />
+                          </button>
+                          <button onClick={() => setEditingCategoryId(null)} disabled={isSaving} className="p-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                            <X className="w-4 h-4 text-gray-400" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex-1 text-sm font-medium truncate" style={{ color: '#3d2010' }}>{category.name}</span>
+                          <button onClick={() => { setEditingCategoryId(category.id); setEditingCategoryName(category.name); }} disabled={isSaving} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors shrink-0" style={{ background: 'rgba(139,94,60,0.1)', color: '#8B5E3C' }}>
+                            <Edit2 className="w-3 h-3" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </button>
+                          <button onClick={() => handleDeleteCategory(category.id)} disabled={isSaving} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-500 disabled:opacity-50 transition-colors shrink-0">
+                            <Trash2 className="w-3 h-3" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                  {!categorySearch && filtered.length > LIMIT && (
+                    <button
+                      onClick={() => setShowAllCategories(v => !v)}
+                      className="w-full pt-2 pb-1 text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+                      style={{ color: 'rgba(139,94,60,0.55)' }}
+                    >
+                      {showAllCategories ? (
+                        <><ChevronUp className="w-3.5 h-3.5" /> Show less</>
+                      ) : (
+                        <><ChevronDown className="w-3.5 h-3.5" /> {hidden} more {hidden === 1 ? 'category' : 'categories'}</>
+                      )}
+                    </button>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* Menu Items */}
+        <div className="bg-white rounded-2xl shadow-sm p-5 sm:p-6" style={{ border: '1px solid rgba(139,94,60,0.12)' }}>
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <h2 className="text-lg font-serif font-semibold min-w-0" style={{ color: '#3d2010' }}>
+              Menu Items
+              <span className="ml-1.5 text-sm font-sans font-normal" style={{ color: 'rgba(139,94,60,0.5)' }}>({menuItems.length})</span>
+            </h2>
+            <button
+              onClick={handleOpenAddForm}
+              className="flex items-center gap-1.5 px-3 py-2 sm:px-4 rounded-xl text-white text-sm font-medium shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
+              style={{ backgroundColor: '#8B5E3C' }}
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Add Item</span>
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="relative mb-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search items..."
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm border outline-none transition-all"
+              style={{ borderColor: 'rgba(139,94,60,0.2)', background: 'rgba(139,94,60,0.02)', color: '#3d2010' }}
+            />
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: 'rgba(139,94,60,0.4)' }}>
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(139,94,60,0.4)' }}>
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {menuItems.length > 0 ? (
+            <>
+              {(() => {
+                const LIMIT = 5;
+                const filtered = searchQuery.trim()
+                  ? menuItems.filter(i => i.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                  : menuItems;
+                if (filtered.length === 0) return (
+                  <div className="text-center py-10">
+                    <p className="text-sm" style={{ color: 'rgba(139,94,60,0.45)' }}>No items match "{searchQuery}"</p>
+                  </div>
+                );
+                const visible = (showAllItems || searchQuery) ? filtered : filtered.slice(0, LIMIT);
+                const hidden = filtered.length - LIMIT;
+                return (
+                  <>
+                    <div className="space-y-2">
+                      {visible.map((item) => (
+                        <div key={item.id} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border" style={{ borderColor: 'rgba(139,94,60,0.15)', background: 'rgba(139,94,60,0.02)' }}>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium truncate block" style={{ color: '#3d2010' }}>{item.name}</span>
+                            <span className="text-xs font-semibold" style={{ color: '#8B5E3C' }}>{item.price} lei</span>
+                          </div>
+                          <button
+                            onClick={() => handleEditItem(item)}
+                            disabled={isSaving}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors shrink-0"
+                            style={{ background: 'rgba(139,94,60,0.1)', color: '#8B5E3C' }}
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteItem(item.id)}
+                            disabled={isSaving}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-500 disabled:opacity-50 transition-colors shrink-0"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {!searchQuery && filtered.length > LIMIT && (
+                      <button
+                        onClick={() => setShowAllItems(v => !v)}
+                        className="w-full pt-3 pb-1 text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+                        style={{ color: 'rgba(139,94,60,0.55)' }}
+                      >
+                        {showAllItems ? (
+                          <><ChevronUp className="w-3.5 h-3.5" /> Show less</>
+                        ) : (
+                          <><ChevronDown className="w-3.5 h-3.5" /> {hidden} more items</>
+                        )}
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
+            </>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-sm" style={{ color: 'rgba(139,94,60,0.45)' }}>No items yet. Tap "Add Item" to get started.</p>
+            </div>
+          )}
+        </div>
+
+      </main>
+
+      {/* Add / Edit Modal */}
+      {showItemForm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => { if (!isSaving) handleCancelEdit(); }}
+          />
+          <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 max-h-[92vh] overflow-y-auto" style={{ zIndex: 1 }}>
+            <div className="sm:hidden w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5" />
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-serif" style={{ color: '#8B5E3C' }}>
+                {editingId ? 'Edit Item' : 'New Item'}
+              </h3>
+              <button onClick={() => { if (!isSaving) handleCancelEdit(); }} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitItem} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: '#8B5E3C' }}>Name *</label>
+                <input
+                  type="text"
+                  value={formState.name}
+                  onChange={(e) => handleFormChange('name', e.target.value)}
+                  disabled={isSaving}
+                  className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all disabled:opacity-50"
+                  style={{ ...inputStyle, borderColor: errors.name ? '#f87171' : 'rgba(139,94,60,0.25)' }}
+                  placeholder="e.g., Cappuccino"
+                  autoFocus
+                />
+                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-amber-900 mb-2">
-                    Address
-                  </label>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: '#8B5E3C' }}>Category *</label>
+                  <select
+                    value={formState.category}
+                    onChange={(e) => handleFormChange('category', e.target.value)}
+                    disabled={isSaving || categories.length === 0}
+                    className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all disabled:opacity-50"
+                    style={{ ...inputStyle, borderColor: errors.category ? '#f87171' : 'rgba(139,94,60,0.25)' }}
+                  >
+                    <option value="">Category</option>
+                    {categories.map(cat => <option key={cat.id} value={String(cat.id)}>{cat.name}</option>)}
+                  </select>
+                  {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: '#8B5E3C' }}>Price *</label>
                   <input
                     type="text"
-                    value={cafeDetails.address}
-                    onChange={(e) => handleCafeDetailsChange('address', e.target.value)}
-                    className="w-full px-4 py-3 border border-amber-200/60 rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-transparent transition-all"
-                    placeholder="Street address"
+                    value={formState.price}
+                    onChange={(e) => handleFormChange('price', e.target.value)}
+                    disabled={isSaving}
+                    className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all disabled:opacity-50"
+                    style={{ ...inputStyle, borderColor: errors.price ? '#f87171' : 'rgba(139,94,60,0.25)' }}
+                    placeholder="e.g., 12"
                   />
+                  {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
                 </div>
-
-
-                {/* Hours */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-amber-900 mb-2">
-                      Opening Time
-                    </label>
-                    <input
-                      type="time"
-                      value={cafeDetails.openingTime}
-                      onChange={(e) => handleCafeDetailsChange('openingTime', e.target.value)}
-                      className="w-full px-4 py-3 border border-amber-200/60 rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-transparent transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-amber-900 mb-2">
-                      Closing Time
-                    </label>
-                    <input
-                      type="time"
-                      value={cafeDetails.closingTime}
-                      onChange={(e) => handleCafeDetailsChange('closingTime', e.target.value)}
-                      className="w-full px-4 py-3 border border-amber-200/60 rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-transparent transition-all"
-                    />
-                  </div>
-                </div>
-
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: '#8B5E3C' }}>Description</label>
+                <textarea
+                  value={formState.description}
+                  onChange={(e) => handleFormChange('description', e.target.value)}
+                  disabled={isSaving}
+                  rows={2}
+                  className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all resize-none disabled:opacity-50"
+                  style={inputStyle}
+                  placeholder="Short description"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-all hover:shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#8B5E3C' }}
                 >
-                  {isSaving && <Loader className="w-4 h-4 animate-spin" />}
-                  Save Details
+                  {isSaving ? <Loader className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  {editingId ? 'Save Changes' : 'Add Item'}
                 </button>
-              </form>
-            </div>
-
-            {/* Categories Card */}
-            <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-amber-100/40">
-              <h2 className="text-2xl font-serif text-amber-900 mb-6">Categories</h2>
-
-              {/* Category List */}
-              <div className="space-y-2 mb-6">
-                {categories.map((category) => (
-                  <div
-                    key={category.id}
-                    className="flex items-center gap-2 p-3 bg-amber-100/40 rounded-lg border border-amber-200/60 hover:shadow-md transition-all group"
-                  >
-                    {editingCategoryId === category.id ? (
-                      <>
-                        <input
-                          type="text"
-                          value={editingCategoryName}
-                          onChange={(e) => setEditingCategoryName(e.target.value)}
-                          className="flex-1 px-3 py-2 border border-amber-200/60 rounded bg-white text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => handleUpdateCategory(category.id)}
-                          disabled={isSaving}
-                          className="p-2 hover:bg-green-100 rounded transition-colors disabled:opacity-50"
-                        >
-                          <Check className="w-4 h-4 text-green-600" />
-                        </button>
-                        <button
-                          onClick={() => setEditingCategoryId(null)}
-                          disabled={isSaving}
-                          className="p-2 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
-                        >
-                          <X className="w-4 h-4 text-gray-600" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="flex-1 text-sm font-medium text-amber-900">{category.name}</span>
-                        <button
-                          onClick={() => {
-                            setEditingCategoryId(category.id);
-                            setEditingCategoryName(category.name);
-                          }}
-                          disabled={isSaving}
-                          className="p-2  hover:bg-blue-100 rounded transition-colors  group-hover:opacity-100 disabled:opacity-50"
-                        >
-                          <Edit2 className="w-4 h-4 text-blue-600" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCategory(category.id)}
-                          disabled={isSaving}
-                          className="p-2 hover:bg-red-100 rounded transition-colors  group-hover:opacity-100 disabled:opacity-50"
-                        >
-                          <X className="w-4 h-4 text-red-600" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Add Category */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
-                  disabled={isSaving}
-                  className="flex-1 px-4 py-3 border border-amber-200/60 rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-transparent transition-all text-sm disabled:opacity-50"
-                  placeholder="Add new category"
-                />
                 <button
-                  onClick={handleAddCategory}
+                  type="button"
+                  onClick={handleCancelEdit}
                   disabled={isSaving}
-                  className="px-4 py-3 bg-amber-600 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-3 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 transition-all"
                 >
-                  <Plus className="w-5 h-5" />
+                  Cancel
                 </button>
               </div>
-            </div>
-          </div>
-
-          {/* Right Column: Menu Items */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Menu Item Form Card */}
-            <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-amber-100/40">
-              <h2 className="text-2xl font-serif text-amber-900 mb-6">
-                {editingId ? 'Edit Menu Item' : 'Add Menu Item'}
-              </h2>
-
-              <form onSubmit={handleSubmitItem} className="space-y-5">
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium text-amber-900 mb-2">
-                    Item Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formState.name}
-                    onChange={(e) => handleFormChange('name', e.target.value)}
-                    disabled={isSaving}
-                    className={`w-full px-4 py-3 border rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50 ${
-                      errors.name
-                        ? 'border-red-400/60 focus:ring-red-400/50'
-                        : 'border-amber-200/60 focus:ring-amber-400/50'
-                    }`}
-                    placeholder="e.g., Cappuccino"
-                  />
-                  {errors.name && (
-                    <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" /> {errors.name}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Category */}
-                  <div>
-                    <label className="block text-sm font-medium text-amber-900 mb-2">
-                      Category *
-                    </label>
-                    <select
-                      value={formState.category}
-                      onChange={(e) => handleFormChange('category', e.target.value)}
-                      disabled={isSaving || categories.length === 0}
-                      className={`w-full px-4 py-3 border rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50 ${
-                        errors.category
-                          ? 'border-red-400/60 focus:ring-red-400/50'
-                          : 'border-amber-200/60 focus:ring-amber-400/50'
-                      }`}
-                    >
-                      <option value="">Select a category</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                    {errors.category && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" /> {errors.category}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Price */}
-                  <div>
-                    <label className="block text-sm font-medium text-amber-900 mb-2">
-                      Price *
-                    </label>
-                    <input
-                      type="text"
-                      value={formState.price}
-                      onChange={(e) => handleFormChange('price', e.target.value)}
-                      disabled={isSaving}
-                      className={`w-full px-4 py-3 border rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:border-transparent transition-all disabled:opacity-50 ${
-                        errors.price
-                          ? 'border-red-400/60 focus:ring-red-400/50'
-                          : 'border-amber-200/60 focus:ring-amber-400/50'
-                      }`}
-                      placeholder="e.g., $4.50"
-                    />
-                    {errors.price && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" /> {errors.price}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-amber-900 mb-2">
-                    Description *
-                  </label>
-                  <textarea
-                    value={formState.description}
-                    onChange={(e) => handleFormChange('description', e.target.value)}
-                    disabled={isSaving}
-                    className={`w-full px-4 py-3 border rounded-lg bg-amber-50/30 text-amber-950 focus:outline-none focus:ring-2 focus:border-transparent transition-all resize-none disabled:opacity-50 ${
-                      errors.description
-                        ? 'border-red-400/60 focus:ring-red-400/50'
-                        : 'border-amber-200/60 focus:ring-amber-400/50'
-                    }`}
-                    rows="3"
-                    placeholder="Describe the item..."
-                  />
-                  {errors.description && (
-                    <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" /> {errors.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Image Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-amber-900 mb-2">
-                    Item Image (optional)
-                  </label>
-                  <div className="space-y-3">
-                    <div className="relative">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(e, false)}
-                        disabled={isUploadingImage}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                        aria-label="Upload item image"
-                      />
-                      <div className="px-4 py-3 border-2 border-dashed border-amber-300/60 rounded-lg bg-amber-50/50 flex items-center justify-center gap-2 hover:bg-amber-100/30 transition-colors">
-                        {isUploadingImage ? (
-                          <Loader className="w-5 h-5 text-amber-600 animate-spin" />
-                        ) : (
-                          <>
-                            <Upload className="w-5 h-5 text-amber-600" />
-                            <span className="text-sm text-amber-900">Click to upload image</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    {formState.image && (
-                      <img
-                        src={formState.image}
-                        alt="Item preview"
-                        className="h-24 w-24 object-cover rounded-lg border border-amber-200/60"
-                        onError={() => handleFormChange('image', '')}
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Buttons */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isSaving && <Loader className="w-5 h-5 animate-spin" />}
-                    <Plus className="w-5 h-5" />
-                    {editingId ? 'Update Item' : 'Add Item'}
-                  </button>
-                  {editingId && (
-                    <button
-                      type="button"
-                      onClick={handleCancelEdit}
-                      disabled={isSaving}
-                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400/50 disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-
-            {/* Menu Items List Card */}
-            <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-amber-100/40">
-              <h2 className="text-2xl font-serif text-amber-900 mb-6">Menu Items ({menuItems.length})</h2>
-
-              {menuItems.length > 0 ? (
-                <div className="space-y-4">
-                  {menuItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex flex-col md:flex-row md:items-center gap-4 p-5 bg-amber-50/30 rounded-xl border border-amber-100/60 hover:shadow-md transition-all"
-                    >
-                      {/* Image */}
-                      {item.image && (
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="h-20 w-20 object-cover rounded-lg border border-amber-200/60 flex-shrink-0"
-                          onError={() => {}}
-                        />
-                      )}
-
-                      {/* Item Details */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-serif text-amber-900">{item.name}</h3>
-                        <p className="text-sm text-amber-700">{getCategoryName(item.category_id)}</p>
-                        <p className="text-sm text-amber-700/70 mt-1 line-clamp-2">{item.description}</p>
-                      </div>
-
-                      {/* Price */}
-                      <div className="text-lg font-serif text-amber-900 font-semibold md:text-right">
-                        {item.price}
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => handleEditItem(item)}
-                          disabled={isSaving}
-                          className="p-3 bg-blue-100/60 text-blue-700 rounded-lg hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-blue-400/50 disabled:opacity-50"
-                          aria-label="Edit item"
-                        >
-                          <Edit2 className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteItem(item.id)}
-                          disabled={isSaving}
-                          className="p-3 bg-red-100/60 text-red-700 rounded-lg hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-red-400/50 disabled:opacity-50"
-                          aria-label="Delete item"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-amber-700/60 text-lg">No menu items yet. Add one to get started!</p>
-                </div>
-              )}
-            </div>
+            </form>
           </div>
         </div>
-      </main>
+      )}
     </div>
   );
 };
