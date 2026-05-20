@@ -1,38 +1,46 @@
 import React, { useState, useMemo, useEffect } from "react";
+import oldplaceBg from "../../assets/images/oldplace_bg.png";
+import oldplaceLogo from "../../assets/images/oldplace_logo.png";
+import oldplaceInside from "../../assets/images/oldplace_inside.png";
 import {
   Heart,
   Search,
   Moon,
   Sun,
   Coffee,
-  Cake,
-  Sandwich,
-  Wind,
-  Utensils,
   Leaf,
-  Droplets,
   Sparkles,
+  CupSoda,
+  Flame,
+  Beer,
+  Wine,
+  FlaskConical,
+  Zap,
+  GlassWater,
+  Cookie,
+  Sandwich,
 } from "lucide-react";
 import supabase from "../../utils/supabase";
 import { CafeLoader } from "../loader/CafeLoader";
 
 // Category icon mapping
 const categoryIcons = {
-  Coffee: Coffee,
-  Desserts: Cake,
-  Sandwiches: Sandwich,
-  Smoothies: Wind,
-  Pastries: Utensils,
-  Salads: Leaf,
-  Beverages: Droplets,
-  Breakfast: Sparkles,
-  All: Utensils,
+  "Coffee": Coffee,
+  "Tea": Leaf,
+  "Hot Chocolate": Flame,
+  "Soft drinks": CupSoda,
+  "Freshly made": Sparkles,
+  "Beer": Beer,
+  "Wine": Wine,
+  "Spirits": FlaskConical,
+  "Shots": Zap,
+  "Long drinks": GlassWater,
+  "Snacks": Cookie,
 };
 
 const CafeMenu = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [favorites, setFavorites] = useState(new Set());
+  const [activeCategory, setActiveCategory] = useState("Coffee");
   const [darkMode, setDarkMode] = useState(false);
 
   const [menuItems, setMenuItems] = useState([]);
@@ -81,7 +89,7 @@ const CafeMenu = () => {
         console.error(error);
       } else {
         const categoriesResult = categoriesData.map((category) => category.name);
-        let result = ["All", ...categoriesResult];
+        let result = [...categoriesResult];
         setCategories(result);
       }
     }
@@ -99,26 +107,26 @@ const CafeMenu = () => {
     return matchesCategory && matchesSearch;
   });
 
-  const toggleFavorite = (id) => {
-    const newFavorites = new Set(favorites);
-    if (newFavorites.has(id)) {
-      newFavorites.delete(id);
-    } else {
-      newFavorites.add(id);
-    }
-    setFavorites(newFavorites);
-  };
+
 
   return menuItems.length > 0 ? (
     <div
-      className={`min-h-screen transition-colors duration-500`}
+      className={`min-h-screen transition-colors duration-500 relative`}
       style={{
         background: darkMode
           ? "linear-gradient(135deg, #222222 0%, #222222 25%, #222222 50%, #222222 75%, #222222 100%)"
-          : "linear-gradient(135deg, #faf8f3 0%, #f5f1eb 25%, #ede6dd 50%, #e8ddd0 75%, #f0e9e0 100%)",
+          : "#FFF2D7",
         backgroundAttachment: "fixed",
       }}
     >
+      {/* Background watermark — fixed, centered over the whole page */}
+      <div className="pointer-events-none fixed inset-0 flex items-center justify-center z-0">
+        <img
+          src={oldplaceBg}
+          alt=""
+          className="w-[600px] max-w-[80vw] opacity-40 select-none"
+        />
+      </div>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Lora:wght@400;500;600&family=Poppins:wght@400;500;600&display=swap');
 
@@ -160,12 +168,8 @@ const CafeMenu = () => {
           content: '';
           position: absolute;
           inset: 0;
-          background-image: 
-            url('https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=1200&h=600&fit=crop'),
-            linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(30, 41, 59, 0.75) 50%, rgba(52, 65, 84, 0.75) 100%);
-          background-size: cover, cover;
-          background-position: center, center;
-          background-blend-mode: overlay;
+          background-size: cover;
+          background-position: center;
           opacity: 0.9;
         }
 
@@ -238,19 +242,22 @@ const CafeMenu = () => {
 
       {/* Header */}
       <header
-        className={`header-background sticky top-0 z-50 transition-all duration-500 border-b ${
-          darkMode ? "border-amber-900/20" : "border-amber-200/30"
-        } backdrop-blur-xl`}
+        className={`header-background sticky top-0 z-50 transition-all duration-500 border-b ${darkMode ? "border-amber-900/20" : "border-amber-200/30"
+          } backdrop-blur-xl`}
+        style={{
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url(${oldplaceInside})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center 25%',
+        }}
       >
-        <div className="relative max-w-7xl mx-auto px-6 py-12 md:py-16 flex items-end justify-between gap-8">
+        <div className="relative max-w-7xl mx-auto px-6 py-12 md:py-16 flex items-center justify-between gap-8">
           <div className="flex-1">
             <div className="flex items-baseline gap-2 mb-3">
               <span
-                className={`text-sm font-sans font-600 tracking-[0.2em] ${
-                  darkMode ? "text-amber-400" : "text-amber-400"
-                }`}
+                className={`text-sm font-sans font-600 tracking-[0.2em] ${darkMode ? "text-amber-400" : "text-amber-400"
+                  }`}
               >
-                CAFÉ EXPERIENCE
+                WELCOME TO
               </span>
             </div>
             <h1 className="font-display text-5xl md:text-7xl leading-tight mb-2 elegant-line">
@@ -261,38 +268,42 @@ const CafeMenu = () => {
               </span>
             </h1>
             <p
-              className={`text-base md:text-lg font-light mt-6 max-w-md ${
-                darkMode ? "text-amber-200/70" : "text-amber-200/70"
-              }`}
+              className={`text-base md:text-lg font-light mt-6 max-w-md ${darkMode ? "text-amber-200/70" : "text-amber-200/70"
+                }`}
             >
               {cafeDetails?.slogan}
             </p>
           </div>
 
-          {/* Dark Mode Toggle - Luxe Style */}
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={`backdrop-blur-xl p-3 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 backdrop-blur-md group ${
-              darkMode
-                ? "border border-amber-700/40 text-amber-300 focus:ring-amber-500 focus:ring-offset-slate-950"
-                : "border border-amber-200/40 text-amber-700 focus:ring-amber-400 focus:ring-offset-white"
-            }`}
-            aria-label="Toggle dark mode"
-          >
-            {darkMode ? (
-              <Sun className="w-6 h-6 transition-transform group-hover:rotate-180" />
-            ) : (
-              <Moon className="w-6 h-6 transition-transform group-hover:rotate-180" />
-            )}
-          </button>
+          {/* Logo + Dark Mode Toggle */}
+          <div className="flex flex-col items-center gap-4">
+            <img
+              src={oldplaceLogo}
+              alt="Old Place Logo"
+              className="w-36 h-36 md:w-44 md:h-44 object-contain"
+            />
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`p-3 rounded-full transition-all duration-300 focus:outline-none group ${darkMode
+                ? "bg-amber-500/20 border border-amber-400/60 text-amber-300 hover:bg-amber-500/30 hover:border-amber-300"
+                : "bg-white/70 border border-white/80 text-brand hover:bg-white/90 shadow-md"
+                }`}
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? (
+                <Sun className="w-6 h-6 transition-transform group-hover:rotate-180" />
+              ) : (
+                <Moon className="w-6 h-6 transition-transform group-hover:rotate-180" />
+              )}          </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-12 md:py-16">
+      <main className="max-w-7xl mx-auto px-6 py-12 md:py-16 relative z-10">
         {/* Search & Filter Section */}
         <div className="space-y-8 mb-12">
           {/* Search Bar - Luxe */}
-          
+
 
           {/* Category Filter - Elegant Chips */}
           <div className="flex gap-3 overflow-x-auto pb-2 sm:pb-0 sm:flex-wrap scroll-smooth">
@@ -305,15 +316,14 @@ const CafeMenu = () => {
                   style={{
                     animationDelay: `${idx * 0.05}s`,
                   }}
-                  className={`category-chip category-chip-enter px-6 md:px-8 py-3 md:py-4 rounded-full font-sans font-600 transition-all duration-300 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-offset-2 backdrop-blur-sm flex items-center gap-2.5 text-sm ${
-                    activeCategory === category
-                      ? darkMode
-                        ? "bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-2xl shadow-amber-600/40 border border-amber-400/50 focus:ring-amber-400 focus:ring-offset-slate-950"
-                        : "bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-2xl shadow-amber-300/40 border border-amber-300/50 focus:ring-amber-400 focus:ring-offset-amber-50"
-                      : darkMode
-                      ? "bg-slate-800/50 text-amber-200/80 border border-amber-600/20 hover:bg-slate-700/60 hover:border-amber-500/40 hover:text-amber-100 focus:ring-amber-500 focus:ring-offset-slate-950"
-                      : "bg-white/60 text-amber-800 border border-amber-200/40 hover:bg-white/80 hover:border-amber-300/60 hover:text-amber-900 focus:ring-amber-400 focus:ring-offset-amber-50"
-                  }`}
+                  className={`category-chip category-chip-enter px-6 md:px-8 py-3 md:py-4 rounded-full font-sans font-600 transition-all duration-300 whitespace-nowrap focus:outline-none backdrop-blur-sm flex items-center gap-2.5 text-sm ${activeCategory === category
+                    ? darkMode
+                      ? "bg-[#7a5c3f] text-white border border-[#7a5c3f] shadow-lg"
+                      : "bg-[#8B5E3C] text-white border border-[#8B5E3C] shadow-lg"
+                    : darkMode
+                      ? "bg-slate-800/50 text-amber-200/80 border border-amber-600/20 hover:bg-slate-700/60 hover:border-amber-500/40 hover:text-amber-100"
+                      : "bg-white/60 text-brand border border-amber-200/40 hover:bg-white/80 hover:border-amber-300/60 hover:text-brand"
+                    }`}
                 >
                   <IconComponent className="category-icon w-4 h-4 md:w-5 md:h-5" />
                   {category}
@@ -332,106 +342,61 @@ const CafeMenu = () => {
                 style={{
                   animationDelay: `${idx * 0.08}s`,
                 }}
-                className={`menu-item-card group relative rounded-3xl overflow-hidden transition-all duration-500 hover:scale-105 focus-within:scale-105 ${
-                  darkMode
-                    ? "bg-slate-800/80 border border-amber-600/20 hover:border-amber-500/40 shadow-2xl hover:shadow-amber-600/20"
-                    : "bg-white/90 border border-amber-200/30 hover:border-amber-300/60 shadow-xl hover:shadow-amber-200/40"
-                }`}
-              >
-                {/* Gradient Overlay for Luxury */}
-                <div
-                  className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${
-                    darkMode
-                      ? "bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"
-                      : "bg-gradient-to-t from-white/30 via-transparent to-transparent"
+                className={`menu-item-card group relative rounded-3xl overflow-hidden transition-all duration-500 hover:scale-105 focus-within:scale-105 ${darkMode
+                  ? "bg-slate-800/80 border border-amber-600/20 hover:border-amber-500/40 shadow-2xl hover:shadow-amber-600/20"
+                  : "bg-white/90 border border-amber-200/30 hover:border-amber-300/60 shadow-xl hover:shadow-amber-200/40"
                   }`}
-                />
-
-                {/* Image Container */}
-                <div className="relative h-64 md:h-72 overflow-hidden bg-gradient-to-br from-amber-200/10 to-orange-200/10">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-full h-full object-cover group-hover:scale-115 transition-transform duration-700 ease-out"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-                  {/* Category Badge */}
-                  <div className="absolute top-4 right-4 backdrop-blur-xl rounded-full px-4 py-2 bg-white/20 border border-white/30">
-                    <span
-                      className={`text-xs font-sans font-600 tracking-widest ${
-                        darkMode ? "text-amber-300" : "text-amber-700"
-                      }`}
-                    >
-                      {item.category}
-                    </span>
-                  </div>
-                </div>
-
+              >
                 {/* Content */}
                 <div className="relative p-7 md:p-8 flex flex-col h-full">
                   {/* Header with Favorite */}
                   <div className="flex items-start justify-between gap-4 mb-3">
                     <div className="flex-1">
+                      {item.subcategory && (
+                        <p className={`text-xs font-sans tracking-widest uppercase mb-1 ${darkMode ? "text-amber-500/60" : "text-brand/40"}`}>
+                          {item.subcategory}
+                        </p>
+                      )}
                       <h3 className="font-display text-2xl md:text-3xl leading-tight mb-3">
                         <span
-                          className={`${
-                            darkMode ? "text-white" : "text-slate-950"
-                          }`}
+                          className={`${darkMode ? "text-white" : "text-brand"
+                            }`}
                         >
                           {item.name}
                         </span>
                       </h3>
                     </div>
-                    <button
-                      onClick={() => toggleFavorite(item.id)}
-                      className={`flex-shrink-0 p-2.5 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 backdrop-blur-md ${
-                        darkMode
-                          ? "hover:bg-amber-600/30 focus:ring-offset-slate-800 focus:ring-amber-400"
-                          : "hover:bg-amber-100/50 focus:ring-offset-white focus:ring-amber-400"
-                      }`}
-                      aria-label="Toggle favorite"
-                    >
-                      <Heart
-                        className={`w-6 h-6 transition-all duration-300 ${
-                          favorites.has(item.id)
-                            ? "fill-rose-500 text-rose-500 scale-110"
-                            : darkMode
-                            ? "text-amber-400/60 hover:text-amber-300"
-                            : "text-amber-600/40 hover:text-amber-600"
-                        }`}
-                      />
-                    </button>
+
                   </div>
 
-                  {/* Description */}
-                  <p
-                    className={`text-sm md:text-base leading-relaxed mb-6 flex-grow ${
-                      darkMode ? "text-amber-200/70" : "text-amber-800/70"
-                    }`}
-                  >
-                    {item.description}
+                  {/* Details */}
+                  <div className="mb-6 flex-grow">
+                    {item.description ? (
+                      <p
+                        className={`text-sm md:text-base leading-relaxed ${darkMode ? "text-amber-200/70" : "text-brand/70"
+                          }`}
+                      >
+                        {item.description}
+                      </p>
+                    ) : null}
+                  </div>
+                  {/* Price */}
                   <div className="pt-4 border-t border-amber-400/20">
                     <p className="price-tag text-3xl md:text-4xl">
                       <span
-                        className={`${
-                          darkMode ? "text-amber-400" : "text-amber-700"
-                        }`}
+                        className={`${darkMode ? "text-amber-400" : "text-brand"
+                          }`}
                       >
                         {item.price}
                       </span>
                       <span
-                        className={`text-lg ml-2 ${
-                          darkMode ? "text-amber-300/60" : "text-amber-600/60"
-                        }`}
+                        className={`text-lg ml-2 ${darkMode ? "text-amber-300/60" : "text-brand/60"
+                          }`}
                       >
-                        AFN
+                        lei
                       </span>
                     </p>
                   </div>
-                  </p>
-
-                  {/* Price - Luxury Style */}
                 </div>
               </div>
             ))}
@@ -439,14 +404,12 @@ const CafeMenu = () => {
         ) : (
           <div className="text-center py-20">
             <Sparkles
-              className={`w-16 h-16 mx-auto mb-6 ${
-                darkMode ? "text-amber-500/40" : "text-amber-600/30"
-              }`}
+              className={`w-16 h-16 mx-auto mb-6 ${darkMode ? "text-amber-500/40" : "text-brand/30"
+                }`}
             />
             <p
-              className={`text-xl font-light mb-8 ${
-                darkMode ? "text-amber-200/60" : "text-amber-700/60"
-              }`}
+              className={`text-xl font-light mb-8 ${darkMode ? "text-amber-200/60" : "text-brand/60"
+                }`}
             >
               No items found matching your search.
             </p>
@@ -455,11 +418,10 @@ const CafeMenu = () => {
                 setSearchTerm("");
                 setActiveCategory("All");
               }}
-              className={`px-8 py-4 text-white font-sans font-600 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 backdrop-blur-md hover:shadow-lg ${
-                darkMode
-                  ? "bg-gradient-to-r from-amber-600 to-amber-500 hover:shadow-amber-600/30 focus:ring-amber-500 focus:ring-offset-slate-950"
-                  : "bg-gradient-to-r from-amber-600 to-amber-500 hover:shadow-amber-300/40 focus:ring-amber-400 focus:ring-offset-amber-50"
-              }`}
+              className={`px-8 py-4 text-white font-sans font-600 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 backdrop-blur-md hover:shadow-lg ${darkMode
+                ? "bg-gradient-to-r from-amber-600 to-amber-500 hover:shadow-amber-600/30 focus:ring-amber-500 focus:ring-offset-slate-950"
+                : "bg-gradient-to-r from-amber-600 to-amber-500 hover:shadow-amber-300/40 focus:ring-amber-400 focus:ring-offset-amber-50"
+                }`}
             >
               Reset Filters
             </button>
@@ -469,87 +431,92 @@ const CafeMenu = () => {
 
       {/* Footer - Elegant */}
       <footer
-        className={`mt-20 border-t transition-all duration-500 ${
-          darkMode
-            ? "border-amber-600/20 bg-gradient-to-b from-slate-900/50 to-slate-950/80"
-            : "border-amber-200/30 bg-gradient-to-b from-white/50 to-amber-50/30"
-        } backdrop-blur-xl`}
+        className={`mt-20 border-t transition-all duration-500 relative z-10 ${darkMode
+          ? "border-amber-600/20 bg-gradient-to-b from-slate-900/50 to-slate-950/80"
+          : "border-amber-200/30 bg-gradient-to-b from-white/50 to-amber-50/30"
+          } backdrop-blur-xl`}
       >
         <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-20">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12 text-center">
+            {/* Hours */}
             <div>
               <p className="font-display text-2xl mb-6">
-                <span
-                  className={`${darkMode ? "text-amber-400" : "text-amber-700"}`}
-                >
+                <span className={`${darkMode ? "text-amber-400" : "text-brand"}`}>
                   Hours
                 </span>
               </p>
-              <p
-                className={`text-lg font-light ${
-                  darkMode ? "text-amber-200/70" : "text-amber-800/70"
-                }`}
-              >
-                Open daily from{" "}
-                <span className="font-semibold">
-                  {cafeDetails?.openingTime?.slice(0, 5)}
-                </span>{" "}
-                to{" "}
-                <span className="font-semibold">
-                  {cafeDetails?.closingTime?.slice(0, 5)}
-                </span>
-              </p>
+              <div className="space-y-2">
+                {(cafeDetails?.hours || []).map(({ day, time }) => (
+                  <div key={day} className="flex justify-center gap-6">
+                    <span className={`text-sm font-semibold ${darkMode ? "text-amber-200/80" : "text-brand/80"}`}>{day}</span>
+                    <span className={`text-sm ${darkMode ? "text-amber-200/60" : "text-brand/60"}`}>{time}</span>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            {/* Location */}
             <div>
               <p className="font-display text-2xl mb-6">
-                <span
-                  className={`${darkMode ? "text-amber-400" : "text-amber-700"}`}
-                >
+                <span className={`${darkMode ? "text-amber-400" : "text-brand"}`}>
                   Location
                 </span>
               </p>
-              <p
-                className={`text-lg font-light ${
-                  darkMode ? "text-amber-200/70" : "text-amber-800/70"
-                }`}
-              >
+              <p className={`text-lg font-light ${darkMode ? "text-amber-200/70" : "text-brand/70"}`}>
                 {cafeDetails?.address}
               </p>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <p className="font-display text-2xl mb-6">
+                <span className={`${darkMode ? "text-amber-400" : "text-brand"}`}>
+                  Contact
+                </span>
+              </p>
+              <a
+                href={`tel:${cafeDetails?.phone}`}
+                className={`text-lg font-light transition-colors ${darkMode ? "text-amber-200/70 hover:text-amber-200" : "text-brand/70 hover:text-brand"}`}
+              >
+                {cafeDetails?.phone}
+              </a>
             </div>
           </div>
 
           <div
-            className={`border-t pt-8 flex flex-col md:flex-row items-center justify-between gap-6 ${
-              darkMode ? "border-amber-600/20" : "border-amber-200/30"
-            }`}
+            className={`border-t pt-8 flex flex-col md:flex-row items-center justify-between gap-6 ${darkMode ? "border-amber-600/20" : "border-amber-200/30"
+              }`}
           >
+            <a
+              href="https://biz-solution.ro/wp-content/uploads/2015/02/MODEL-ATENTIONARE-BON-FISCAL.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`text-xs font-sans underline underline-offset-2 transition-colors ${darkMode ? "text-amber-300/40 hover:text-amber-300/70" : "text-brand/30 hover:text-brand/60"}`}
+            >
+              Legal
+            </a>
             <p className="font-sans text-sm font-light">
               <span
-                className={`${darkMode ? "text-amber-300/60" : "text-amber-600/60"}`}
+                className={`${darkMode ? "text-amber-300/60" : "text-brand/60"}`}
               >
-                Crafted with care ☕
-              </span>
-            </p>
-            <p className="font-sans text-sm font-light">
-              <span
-                className={`${darkMode ? "text-amber-300/60" : "text-amber-600/60"}`}
-              >
-                Developed by{" "}
+                Made with <Heart className="inline-block w-3 h-3 fill-rose-500 text-rose-500 animate-pulse mx-0.5 -translate-y-px" /> by{" "}
               </span>
               <a
-                href="https://t.me/ahmadwalish"
-                className={`transition-colors ${
-                  darkMode
-                    ? "text-amber-400 hover:text-amber-300"
-                    : "text-amber-700 hover:text-amber-800"
-                }`}
+                href="https://www.doderasoft.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`transition-colors ${darkMode
+                  ? "text-amber-400 hover:text-amber-300"
+                  : "text-brand hover:text-brand"
+                  }`}
               >
-                @AhmadwaliSh
+                Dodera Software
               </a>
             </p>
           </div>
         </div>
       </footer>
+
     </div>
   ) : (
     <CafeLoader />
