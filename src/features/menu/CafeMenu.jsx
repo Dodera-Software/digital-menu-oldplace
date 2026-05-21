@@ -46,56 +46,38 @@ const CafeMenu = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [cafeDetails, setCafeDetails] = useState({});
   const [categories, setCategories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
   useEffect(() => {
-    async function fetchMenu() {
-      const { data, error } = await supabase.from("menuItems").select(`
-        *,
-        categories (
-          name
-        )
-      `);
+    async function fetchAll() {
+      try {
+        const [menuRes, detailsRes, categoriesRes] = await Promise.all([
+          supabase.from("menuItems").select(`*, categories(name)`),
+          supabase.from("cafeDetails").select(`*`).limit(1),
+          supabase.from("categories").select(`*`),
+        ]);
 
-      if (error) {
-        console.error(error);
-      } else {
-        const menuWithCategoryNames =
-          data?.map((item) => ({
+        if (menuRes.error) throw menuRes.error;
+        if (detailsRes.error) throw detailsRes.error;
+        if (categoriesRes.error) throw categoriesRes.error;
+
+        setMenuItems(
+          menuRes.data?.map((item) => ({
             ...item,
             category: item.categories?.name || "Uncategorized",
-          })) || [];
-
-        setMenuItems(menuWithCategoryNames);
+          })) || []
+        );
+        setCafeDetails(detailsRes.data?.[0] || {});
+        setCategories(categoriesRes.data?.map((c) => c.name) || []);
+      } catch (err) {
+        console.error("Failed to load menu:", err);
+        setFetchError(err.message || "Failed to load menu data.");
+      } finally {
+        setIsLoading(false);
       }
     }
-    async function fetchDetails() {
-      const { data: details, error } = await supabase
-        .from("cafeDetails")
-        .select(`*`)
-        .limit(1);
-
-      if (error) {
-        console.error(error);
-      } else {
-        setCafeDetails(details[0]);
-      }
-    }
-    async function fetchCategories() {
-      const { data: categoriesData, error } = await supabase
-        .from("categories")
-        .select(`*`);
-
-      if (error) {
-        console.error(error);
-      } else {
-        const categoriesResult = categoriesData.map((category) => category.name);
-        let result = [...categoriesResult];
-        setCategories(result);
-      }
-    }
-    fetchCategories();
-    fetchDetails();
-    fetchMenu();
+    fetchAll();
   }, []);
 
   const filteredItems = menuItems.filter((item) => {
@@ -109,7 +91,16 @@ const CafeMenu = () => {
 
 
 
-  return menuItems.length > 0 ? (
+  return isLoading ? (
+    <CafeLoader />
+  ) : fetchError ? (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: '#FFF2D7' }}>
+      <div className="text-center px-6">
+        <p className="text-lg font-semibold mb-2" style={{ color: '#8B5E3C' }}>Could not load menu</p>
+        <p className="text-sm" style={{ color: 'rgba(139,94,60,0.6)' }}>{fetchError}</p>
+      </div>
+    </div>
+  ) : (
     <div
       className={`min-h-screen transition-colors duration-500 relative`}
       style={{
@@ -518,8 +509,6 @@ const CafeMenu = () => {
       </footer>
 
     </div>
-  ) : (
-    <CafeLoader />
   );
 };
 

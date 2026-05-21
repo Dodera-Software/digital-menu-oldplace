@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Trash2, Plus, Edit2, X, Check, AlertCircle, Upload, Loader, ChevronDown, ChevronRight, ChevronUp, LogOut } from 'lucide-react';
 import { CafeLoader } from '../loader/CafeLoader'
 import { useNavigate } from 'react-router';
@@ -57,6 +57,21 @@ const CafeAdmin = () => {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [showAllItems, setShowAllItems] = useState(false);
+
+  const editingCategoryRef = useRef(null);
+
+  // Close category edit when clicking outside
+  useEffect(() => {
+    if (!editingCategoryId) return;
+    const handleClickOutside = (e) => {
+      if (editingCategoryRef.current && !editingCategoryRef.current.contains(e.target)) {
+        setEditingCategoryId(null);
+        setEditingCategoryName('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [editingCategoryId]);
 
   const toggleCategory = (catId) => {
     setCollapsedCategories(prev => {
@@ -479,12 +494,12 @@ const CafeAdmin = () => {
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-serif" style={{ color: '#8B5E3C' }}>Admin Dashboard</h1>
           <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all hover:shadow-sm active:scale-95"
+            onClick={() => { sessionStorage.removeItem('admin_authenticated'); navigate('/login'); }}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all hover:shadow-sm active:scale-95 cursor-pointer"
             style={{ background: 'rgba(139,94,60,0.08)', color: '#8B5E3C' }}
           >
             <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Log out</span>
+            <span>Log out</span>
           </button>
         </div>
       </header>
@@ -558,7 +573,7 @@ const CafeAdmin = () => {
               <button
                 type="submit"
                 disabled={isSaving}
-                className="w-full py-3 rounded-xl text-white text-sm font-medium transition-all hover:shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl text-white text-sm font-medium transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
                 style={{ backgroundColor: '#8B5E3C' }}
               >
                 {isSaving && <Loader className="w-4 h-4 animate-spin" />}
@@ -577,11 +592,11 @@ const CafeAdmin = () => {
             </h2>
             <button
               onClick={() => { setShowCategoryForm(v => !v); setNewCategory(''); }}
-              className="flex items-center gap-1.5 px-3 py-2 sm:px-4 rounded-xl text-white text-sm font-medium shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-sm font-medium shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
               style={{ backgroundColor: '#8B5E3C' }}
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add Category</span>
+              <span>Add Category</span>
             </button>
           </div>
 
@@ -599,7 +614,7 @@ const CafeAdmin = () => {
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
             {categorySearch && (
-              <button onClick={() => setCategorySearch('')} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(139,94,60,0.4)' }}>
+              <button onClick={() => setCategorySearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer" style={{ color: 'rgba(139,94,60,0.4)' }}>
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -621,7 +636,7 @@ const CafeAdmin = () => {
               <button
                 onClick={() => { handleAddCategory(); setShowCategoryForm(false); }}
                 disabled={isSaving}
-                className="px-4 py-2.5 rounded-xl text-white disabled:opacity-50 hover:shadow-md transition-all"
+                className="px-4 py-2.5 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:shadow-md transition-all"
                 style={{ backgroundColor: '#8B5E3C' }}
               >
                 <Check className="w-4 h-4" />
@@ -629,7 +644,7 @@ const CafeAdmin = () => {
               <button
                 onClick={() => setShowCategoryForm(false)}
                 disabled={isSaving}
-                className="px-3 py-2.5 rounded-xl disabled:opacity-50 transition-all"
+                className="px-3 py-2.5 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
                 style={{ background: 'rgba(139,94,60,0.08)', color: '#8B5E3C' }}
               >
                 <X className="w-4 h-4" />
@@ -646,7 +661,7 @@ const CafeAdmin = () => {
               return (
                 <>
                   {visible.map((category) => (
-                    <div key={category.id} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border" style={{ borderColor: 'rgba(139,94,60,0.15)', background: 'rgba(139,94,60,0.02)' }}>
+                    <div key={category.id} ref={editingCategoryId === category.id ? editingCategoryRef : null} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border" style={{ borderColor: 'rgba(139,94,60,0.15)', background: 'rgba(139,94,60,0.02)' }}>
                       {editingCategoryId === category.id ? (
                         <>
                           <input
@@ -657,23 +672,23 @@ const CafeAdmin = () => {
                             style={{ borderColor: 'rgba(139,94,60,0.3)', color: '#3d2010' }}
                             autoFocus
                           />
-                          <button onClick={() => handleUpdateCategory(category.id)} disabled={isSaving} className="p-1.5 rounded-lg hover:bg-green-50 disabled:opacity-50">
+                          <button onClick={() => handleUpdateCategory(category.id)} disabled={isSaving} className="p-1.5 rounded-lg hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
                             <Check className="w-4 h-4 text-green-600" />
                           </button>
-                          <button onClick={() => setEditingCategoryId(null)} disabled={isSaving} className="p-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                          <button onClick={() => setEditingCategoryId(null)} disabled={isSaving} className="p-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
                             <X className="w-4 h-4 text-gray-400" />
                           </button>
                         </>
                       ) : (
                         <>
                           <span className="flex-1 text-sm font-medium truncate" style={{ color: '#3d2010' }}>{category.name}</span>
-                          <button onClick={() => { setEditingCategoryId(category.id); setEditingCategoryName(category.name); }} disabled={isSaving} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors shrink-0" style={{ background: 'rgba(139,94,60,0.1)', color: '#8B5E3C' }}>
+                          <button onClick={() => { setEditingCategoryId(category.id); setEditingCategoryName(category.name); }} disabled={isSaving} className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0" style={{ background: 'rgba(139,94,60,0.1)', color: '#8B5E3C' }}>
                             <Edit2 className="w-3 h-3" />
-                            <span className="hidden sm:inline">Edit</span>
+                            Edit
                           </button>
-                          <button onClick={() => handleDeleteCategory(category.id)} disabled={isSaving} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-500 disabled:opacity-50 transition-colors shrink-0">
+                          <button onClick={() => handleDeleteCategory(category.id)} disabled={isSaving} className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-red-50 text-red-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0">
                             <Trash2 className="w-3 h-3" />
-                            <span className="hidden sm:inline">Delete</span>
+                            Delete
                           </button>
                         </>
                       )}
@@ -682,7 +697,7 @@ const CafeAdmin = () => {
                   {!categorySearch && filtered.length > LIMIT && (
                     <button
                       onClick={() => setShowAllCategories(v => !v)}
-                      className="w-full pt-2 pb-1 text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+                      className="w-full pt-2 pb-1 text-xs font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer"
                       style={{ color: 'rgba(139,94,60,0.55)' }}
                     >
                       {showAllCategories ? (
@@ -707,11 +722,11 @@ const CafeAdmin = () => {
             </h2>
             <button
               onClick={handleOpenAddForm}
-              className="flex items-center gap-1.5 px-3 py-2 sm:px-4 rounded-xl text-white text-sm font-medium shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-sm font-medium shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
               style={{ backgroundColor: '#8B5E3C' }}
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add Item</span>
+              <span>Add Item</span>
             </button>
           </div>
 
@@ -729,7 +744,7 @@ const CafeAdmin = () => {
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'rgba(139,94,60,0.4)' }}>
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer" style={{ color: 'rgba(139,94,60,0.4)' }}>
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -756,24 +771,24 @@ const CafeAdmin = () => {
                         <div key={item.id} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border" style={{ borderColor: 'rgba(139,94,60,0.15)', background: 'rgba(139,94,60,0.02)' }}>
                           <div className="flex-1 min-w-0">
                             <span className="text-sm font-medium truncate block" style={{ color: '#3d2010' }}>{item.name}</span>
-                            <span className="text-xs font-semibold" style={{ color: '#8B5E3C' }}>{item.price} lei</span>
+                            <span className="text-xs" style={{ color: '#8B5E3C' }}>{item.categories?.name} · {item.price} lei</span>
                           </div>
                           <button
                             onClick={() => handleEditItem(item)}
                             disabled={isSaving}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition-colors shrink-0"
+                            className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
                             style={{ background: 'rgba(139,94,60,0.1)', color: '#8B5E3C' }}
                           >
                             <Edit2 className="w-3 h-3" />
-                            <span className="hidden sm:inline">Edit</span>
+                            Edit
                           </button>
                           <button
                             onClick={() => handleDeleteItem(item.id)}
                             disabled={isSaving}
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-500 disabled:opacity-50 transition-colors shrink-0"
+                            className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-red-50 text-red-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0"
                           >
                             <Trash2 className="w-3 h-3" />
-                            <span className="hidden sm:inline">Delete</span>
+                            Delete
                           </button>
                         </div>
                       ))}
@@ -781,7 +796,7 @@ const CafeAdmin = () => {
                     {!searchQuery && filtered.length > LIMIT && (
                       <button
                         onClick={() => setShowAllItems(v => !v)}
-                        className="w-full pt-3 pb-1 text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+                        className="w-full pt-3 pb-1 text-xs font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer"
                         style={{ color: 'rgba(139,94,60,0.55)' }}
                       >
                         {showAllItems ? (
@@ -808,7 +823,7 @@ const CafeAdmin = () => {
       {showItemForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer"
             onClick={() => { if (!isSaving) handleCancelEdit(); }}
           />
           <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 max-h-[92vh] overflow-y-auto" style={{ zIndex: 1 }}>
@@ -817,7 +832,7 @@ const CafeAdmin = () => {
               <h3 className="text-xl font-serif" style={{ color: '#8B5E3C' }}>
                 {editingId ? 'Edit Item' : 'New Item'}
               </h3>
-              <button onClick={() => { if (!isSaving) handleCancelEdit(); }} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
+              <button onClick={() => { if (!isSaving) handleCancelEdit(); }} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors cursor-pointer">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
@@ -843,7 +858,7 @@ const CafeAdmin = () => {
                     value={formState.category}
                     onChange={(e) => handleFormChange('category', e.target.value)}
                     disabled={isSaving || categories.length === 0}
-                    className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all disabled:opacity-50"
+                    className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     style={{ ...inputStyle, borderColor: errors.category ? '#f87171' : 'rgba(139,94,60,0.25)' }}
                   >
                     <option value="">Category</option>
@@ -881,7 +896,7 @@ const CafeAdmin = () => {
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-all hover:shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
                   style={{ backgroundColor: '#8B5E3C' }}
                 >
                   {isSaving ? <Loader className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -891,7 +906,7 @@ const CafeAdmin = () => {
                   type="button"
                   onClick={handleCancelEdit}
                   disabled={isSaving}
-                  className="px-5 py-3 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 transition-all"
+                  className="px-5 py-3 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
                 >
                   Cancel
                 </button>
