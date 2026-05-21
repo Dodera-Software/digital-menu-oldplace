@@ -289,7 +289,7 @@ const CafeMenu = () => {
             />
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className={`p-3 rounded-full transition-all duration-300 focus:outline-none group ${darkMode
+              className={`p-3 rounded-full transition-all duration-300 focus:outline-none group cursor-pointer ${darkMode
                 ? "bg-amber-500/20 border border-amber-400/60 text-amber-300 hover:bg-amber-500/30 hover:border-amber-300"
                 : "bg-white/70 border border-white/80 text-brand hover:bg-white/90 shadow-md"
                 }`}
@@ -321,7 +321,7 @@ const CafeMenu = () => {
                   key={category.id || category.name}
                   onClick={() => { setActiveCategory(category.name); window.scrollTo(0, 0); }}
                   style={{ animationDelay: `${idx * 0.05}s` }}
-                  className={`category-chip category-chip-enter px-6 md:px-8 py-3 md:py-4 rounded-full font-sans font-600 transition-all duration-300 whitespace-nowrap focus:outline-none backdrop-blur-sm flex items-center gap-2.5 text-sm ${activeCategory === category.name
+                  className={`category-chip category-chip-enter px-6 md:px-8 py-3 md:py-4 rounded-full font-sans font-600 transition-all duration-300 whitespace-nowrap focus:outline-none backdrop-blur-sm flex items-center gap-2.5 text-sm cursor-pointer ${activeCategory === category.name
                     ? darkMode
                       ? "bg-[#7a5c3f] text-white border border-[#7a5c3f] shadow-lg"
                       : "bg-[#8B5E3C] text-white border border-[#8B5E3C] shadow-lg"
@@ -425,7 +425,7 @@ const CafeMenu = () => {
                 setSearchTerm("");
                 setActiveCategory("All");
               }}
-              className={`px-8 py-4 text-white font-sans font-600 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 backdrop-blur-md hover:shadow-lg ${darkMode
+              className={`px-8 py-4 text-white font-sans font-600 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 backdrop-blur-md hover:shadow-lg cursor-pointer ${darkMode
                 ? "bg-gradient-to-r from-amber-600 to-amber-500 hover:shadow-amber-600/30 focus:ring-amber-500 focus:ring-offset-slate-950"
                 : "bg-gradient-to-r from-amber-600 to-amber-500 hover:shadow-amber-300/40 focus:ring-amber-400 focus:ring-offset-amber-50"
                 }`}
@@ -498,7 +498,7 @@ const CafeMenu = () => {
               href="https://biz-solution.ro/wp-content/uploads/2015/02/MODEL-ATENTIONARE-BON-FISCAL.pdf"
               target="_blank"
               rel="noopener noreferrer"
-              className={`text-xs font-sans underline underline-offset-2 transition-colors ${darkMode ? "text-amber-300/40 hover:text-amber-300/70" : "text-brand/30 hover:text-brand/60"}`}
+              className={`text-xs font-sans underline underline-offset-2 transition-colors cursor-pointer ${darkMode ? "text-amber-300/70 hover:text-amber-300/85" : "text-brand/70 hover:text-brand/85"}`}
             >
               Legal
             </a>
