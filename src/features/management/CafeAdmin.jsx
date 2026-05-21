@@ -1,10 +1,45 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { Trash2, Plus, Edit2, X, Check, AlertCircle, Upload, Loader, ChevronDown, ChevronRight, ChevronUp, LogOut } from 'lucide-react';
+import {
+  Trash2, Plus, Edit2, X, Check, AlertCircle, Upload, Loader, ChevronDown, ChevronRight, ChevronUp, LogOut,
+  Coffee, Leaf, Flame, CupSoda, Sparkles, Beer, Wine, FlaskConical, Zap, GlassWater, Cookie, Sandwich, Utensils,
+  Martini, Pizza, Milk, Citrus, Croissant, CakeSlice, Soup, Salad, Beef, Drumstick, Fish, IceCream2
+} from 'lucide-react';
 import { CafeLoader } from '../loader/CafeLoader'
 import { useNavigate } from 'react-router';
 import supabase from '../../utils/supabase'
 
 const BUCKET_NAME = 'images';
+
+const AVAILABLE_ICONS = [
+  // Drinks
+  { name: 'Coffee', component: Coffee },
+  { name: 'Martini', component: Martini },
+  { name: 'Beer', component: Beer },
+  { name: 'Wine', component: Wine },
+  { name: 'CupSoda', component: CupSoda },
+  { name: 'GlassWater', component: GlassWater },
+  { name: 'FlaskConical', component: FlaskConical },
+  { name: 'Milk', component: Milk },
+  { name: 'Citrus', component: Citrus },
+  { name: 'Leaf', component: Leaf },
+  { name: 'Flame', component: Flame },
+  { name: 'Sparkles', component: Sparkles },
+  { name: 'Zap', component: Zap },
+  // Food
+  { name: 'Pizza', component: Pizza },
+  { name: 'Sandwich', component: Sandwich },
+  { name: 'Cookie', component: Cookie },
+  { name: 'Croissant', component: Croissant },
+  { name: 'CakeSlice', component: CakeSlice },
+  { name: 'Soup', component: Soup },
+  { name: 'Salad', component: Salad },
+  { name: 'Beef', component: Beef },
+  { name: 'Drumstick', component: Drumstick },
+  { name: 'Fish', component: Fish },
+  { name: 'IceCream2', component: IceCream2 },
+  { name: 'Utensils', component: Utensils },
+];
+const ICON_MAP_ADMIN = Object.fromEntries(AVAILABLE_ICONS.map(i => [i.name, i.component]));
 
 const DEFAULT_HOURS = [
   { day: 'Mon – Fri', time: '7:30 am – 12 am' },
@@ -57,6 +92,10 @@ const CafeAdmin = () => {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [showAllItems, setShowAllItems] = useState(false);
+
+  const [newCategoryIcon, setNewCategoryIcon] = useState('Utensils');
+  const [editingCategoryIcon, setEditingCategoryIcon] = useState('Utensils');
+  const [confirmDelete, setConfirmDelete] = useState(null); // { type: 'category'|'item', id, name }
 
   const editingCategoryRef = useRef(null);
 
@@ -120,7 +159,7 @@ const CafeAdmin = () => {
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('categories')
         .select('*')
-        .order('name');
+        .order('id', { ascending: true });
 
       if (categoriesError) throw categoriesError;
       setCategories(categoriesData || []);
@@ -242,7 +281,7 @@ const CafeAdmin = () => {
 
   // Categories Handlers
   const handleAddCategory = async () => {
-    const trimmed = newCategory.trim();
+    const trimmed = editingCategoryName.trim();
     if (!trimmed) return;
 
     try {
@@ -261,14 +300,16 @@ const CafeAdmin = () => {
       // Insert new category
       const { data, error } = await supabase
         .from('categories')
-        .insert([{ name: trimmed }])
+        .insert([{ name: trimmed, icon: editingCategoryIcon }])
         .select()
         .single();
 
       if (error) throw error;
 
       setCategories([...categories, data]);
-      setNewCategory('');
+      setEditingCategoryName('');
+      setEditingCategoryIcon('Utensils');
+      setShowCategoryForm(false);
       showSuccess('Category added!');
     } catch (error) {
       console.error('Error adding category:', error);
@@ -288,16 +329,18 @@ const CafeAdmin = () => {
 
       const { error } = await supabase
         .from('categories')
-        .update({ name: trimmed })
+        .update({ name: trimmed, icon: editingCategoryIcon })
         .eq('id', id);
 
       if (error) throw error;
 
       setCategories(categories.map(cat =>
-        cat.id === id ? { ...cat, name: trimmed } : cat
+        cat.id === id ? { ...cat, name: trimmed, icon: editingCategoryIcon } : cat
       ));
       setEditingCategoryId(null);
       setEditingCategoryName('');
+      setEditingCategoryIcon('Utensils');
+      setShowCategoryForm(false);
       showSuccess('Category updated!');
     } catch (error) {
       console.error('Error updating category:', error);
@@ -307,28 +350,9 @@ const CafeAdmin = () => {
     }
   };
 
-  const handleDeleteCategory = async (id) => {
-    if (!window.confirm('Are you sure? This action cannot be undone.')) return;
-
-    try {
-      setIsSaving(true);
-      setErrorMessage('');
-
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setCategories(categories.filter(cat => cat.id !== id));
-      showSuccess('Category deleted!');
-    } catch (error) {
-      console.error('Error deleting category:', error);
-      setErrorMessage(error.message || 'Failed to delete category');
-    } finally {
-      setIsSaving(false);
-    }
+  const handleDeleteCategory = (id) => {
+    const cat = categories.find(c => c.id === id);
+    setConfirmDelete({ type: 'category', id, name: cat?.name || 'this category' });
   };
 
   // Menu Items Handlers
@@ -399,7 +423,10 @@ const CafeAdmin = () => {
 
         if (error) throw error;
 
-        setMenuItems([data, ...menuItems]);
+        setMenuItems([data, ...menuItems].map(item => item.id === data.id
+          ? { ...item, categories: categories.find(c => String(c.id) === String(data.category_id)) || null }
+          : item
+        ));
         showSuccess('Menu item added!');
       }
 
@@ -434,25 +461,32 @@ const CafeAdmin = () => {
     setShowItemForm(true);
   };
 
-  const handleDeleteItem = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) return;
+  const handleDeleteItem = (id) => {
+    const item = menuItems.find(i => i.id === id);
+    setConfirmDelete({ type: 'item', id, name: item?.name || 'this item' });
+  };
 
+  const doDelete = async () => {
+    if (!confirmDelete) return;
+    const { type, id } = confirmDelete;
+    setConfirmDelete(null);
     try {
       setIsSaving(true);
       setErrorMessage('');
-
-      const { error } = await supabase
-        .from('menuItems')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setMenuItems(menuItems.filter(item => item.id !== id));
-      showSuccess('Item deleted!');
+      if (type === 'category') {
+        const { error } = await supabase.from('categories').delete().eq('id', id);
+        if (error) throw error;
+        setCategories(prev => prev.filter(c => c.id !== id));
+        showSuccess('Category deleted!');
+      } else {
+        const { error } = await supabase.from('menuItems').delete().eq('id', id);
+        if (error) throw error;
+        setMenuItems(prev => prev.filter(i => i.id !== id));
+        showSuccess('Item deleted!');
+      }
     } catch (error) {
-      console.error('Error deleting item:', error);
-      setErrorMessage(error.message || 'Failed to delete item');
+      console.error('Error deleting:', error);
+      setErrorMessage(error.message || 'Failed to delete');
     } finally {
       setIsSaving(false);
     }
@@ -591,7 +625,7 @@ const CafeAdmin = () => {
               <span className="ml-1.5 text-sm font-sans font-normal" style={{ color: 'rgba(139,94,60,0.5)' }}>({categories.length})</span>
             </h2>
             <button
-              onClick={() => { setShowCategoryForm(v => !v); setNewCategory(''); }}
+              onClick={() => { setEditingCategoryId(null); setEditingCategoryName(''); setEditingCategoryIcon('Utensils'); setShowCategoryForm(true); }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white text-sm font-medium shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
               style={{ backgroundColor: '#8B5E3C' }}
             >
@@ -620,38 +654,6 @@ const CafeAdmin = () => {
             )}
           </div>
 
-          {showCategoryForm && (
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { handleAddCategory(); setShowCategoryForm(false); } if (e.key === 'Escape') setShowCategoryForm(false); }}
-                disabled={isSaving}
-                autoFocus
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm border outline-none transition-all disabled:opacity-50"
-                style={inputStyle}
-                placeholder="New category name"
-              />
-              <button
-                onClick={() => { handleAddCategory(); setShowCategoryForm(false); }}
-                disabled={isSaving}
-                className="px-4 py-2.5 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:shadow-md transition-all"
-                style={{ backgroundColor: '#8B5E3C' }}
-              >
-                <Check className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setShowCategoryForm(false)}
-                disabled={isSaving}
-                className="px-3 py-2.5 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
-                style={{ background: 'rgba(139,94,60,0.08)', color: '#8B5E3C' }}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
           <div className="space-y-2 mb-4">
             {(() => {
               const filtered = categories.filter(c => c.name.toLowerCase().includes(categorySearch.toLowerCase()));
@@ -661,37 +663,21 @@ const CafeAdmin = () => {
               return (
                 <>
                   {visible.map((category) => (
-                    <div key={category.id} ref={editingCategoryId === category.id ? editingCategoryRef : null} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border" style={{ borderColor: 'rgba(139,94,60,0.15)', background: 'rgba(139,94,60,0.02)' }}>
-                      {editingCategoryId === category.id ? (
-                        <>
-                          <input
-                            type="text"
-                            value={editingCategoryName}
-                            onChange={(e) => setEditingCategoryName(e.target.value)}
-                            className="flex-1 px-2 py-1 text-sm rounded-lg border outline-none"
-                            style={{ borderColor: 'rgba(139,94,60,0.3)', color: '#3d2010' }}
-                            autoFocus
-                          />
-                          <button onClick={() => handleUpdateCategory(category.id)} disabled={isSaving} className="p-1.5 rounded-lg hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
-                            <Check className="w-4 h-4 text-green-600" />
-                          </button>
-                          <button onClick={() => setEditingCategoryId(null)} disabled={isSaving} className="p-1.5 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
-                            <X className="w-4 h-4 text-gray-400" />
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <span className="flex-1 text-sm font-medium truncate" style={{ color: '#3d2010' }}>{category.name}</span>
-                          <button onClick={() => { setEditingCategoryId(category.id); setEditingCategoryName(category.name); }} disabled={isSaving} className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0" style={{ background: 'rgba(139,94,60,0.1)', color: '#8B5E3C' }}>
-                            <Edit2 className="w-3 h-3" />
-                            Edit
-                          </button>
-                          <button onClick={() => handleDeleteCategory(category.id)} disabled={isSaving} className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-red-50 text-red-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0">
-                            <Trash2 className="w-3 h-3" />
-                            Delete
-                          </button>
-                        </>
-                      )}
+                    <div key={category.id}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl border"
+                      style={{ borderColor: 'rgba(139,94,60,0.15)', background: 'rgba(139,94,60,0.02)' }}>
+                      <span className="flex-1 text-sm font-medium truncate flex items-center gap-2" style={{ color: '#3d2010' }}>
+                        {(() => { const IC = ICON_MAP_ADMIN[category.icon]; return IC ? <IC className="w-3.5 h-3.5 shrink-0" style={{ color: '#8B5E3C' }} /> : null; })()}
+                        {category.name}
+                      </span>
+                      <button onClick={() => { setEditingCategoryId(category.id); setEditingCategoryName(category.name); setEditingCategoryIcon(category.icon || 'Utensils'); setShowCategoryForm(true); }} disabled={isSaving} className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0" style={{ background: 'rgba(139,94,60,0.1)', color: '#8B5E3C' }}>
+                        <Edit2 className="w-3 h-3" />
+                        Edit
+                      </button>
+                      <button onClick={() => handleDeleteCategory(category.id)} disabled={isSaving} className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium bg-red-50 text-red-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors shrink-0">
+                        <Trash2 className="w-3 h-3" />
+                        Delete
+                      </button>
                     </div>
                   ))}
                   {!categorySearch && filtered.length > LIMIT && (
@@ -818,6 +804,121 @@ const CafeAdmin = () => {
         </div>
 
       </main>
+
+      {/* Add / Edit Category Modal */}
+      {showCategoryForm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer"
+            onClick={() => { if (!isSaving) { setShowCategoryForm(false); setEditingCategoryId(null); } }}
+          />
+          <div className="relative w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6" style={{ zIndex: 1 }}>
+            <div className="sm:hidden w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5" />
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-serif" style={{ color: '#8B5E3C' }}>
+                {editingCategoryId ? 'Edit Category' : 'New Category'}
+              </h3>
+              <button
+                onClick={() => { if (!isSaving) { setShowCategoryForm(false); setEditingCategoryId(null); } }}
+                className="p-1.5 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: '#8B5E3C' }}>Name *</label>
+                <input
+                  type="text"
+                  value={editingCategoryName}
+                  onChange={(e) => setEditingCategoryName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Escape' && !isSaving) { setShowCategoryForm(false); setEditingCategoryId(null); } }}
+                  disabled={isSaving}
+                  autoFocus
+                  className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all disabled:opacity-50"
+                  style={inputStyle}
+                  placeholder="e.g., Cocktails"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: '#8B5E3C' }}>Icon</label>
+                <div className="grid grid-cols-5 gap-2">
+                  {AVAILABLE_ICONS.map(({ name, component: Icon }) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => setEditingCategoryIcon(name)}
+                      title={name}
+                      className="flex flex-col items-center gap-1 p-2.5 rounded-xl transition-all cursor-pointer"
+                      style={{
+                        background: editingCategoryIcon === name ? 'rgba(139,94,60,0.1)' : 'transparent',
+                        border: `1.5px solid ${editingCategoryIcon === name ? '#8B5E3C' : 'rgba(139,94,60,0.12)'}`,
+                      }}
+                    >
+                      <Icon className="w-5 h-5" style={{ color: editingCategoryIcon === name ? '#8B5E3C' : '#bbb' }} />
+                      <span className="text-[9px] truncate w-full text-center leading-tight" style={{ color: editingCategoryIcon === name ? '#8B5E3C' : '#bbb' }}>{name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => editingCategoryId ? handleUpdateCategory(editingCategoryId) : handleAddCategory()}
+                  disabled={isSaving}
+                  className="flex-1 py-3 rounded-xl text-white text-sm font-medium transition-all hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#8B5E3C' }}
+                >
+                  {isSaving ? <Loader className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  {editingCategoryId ? 'Save Changes' : 'Add Category'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowCategoryForm(false); setEditingCategoryId(null); }}
+                  disabled={isSaving}
+                  className="px-5 py-3 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm cursor-pointer" onClick={() => setConfirmDelete(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm" style={{ border: '1px solid rgba(139,94,60,0.12)' }}>
+            <div className="text-center">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-7 h-7 text-red-500" />
+              </div>
+              <h3 className="text-xl font-serif mb-1" style={{ color: '#3d2010' }}>
+                Delete {confirmDelete.type === 'category' ? 'Category' : 'Item'}?
+              </h3>
+              <p className="text-sm mb-6" style={{ color: 'rgba(61,32,16,0.55)' }}>
+                <span className="font-medium" style={{ color: '#3d2010' }}>&#34;{confirmDelete.name}&#34;</span> will be permanently removed and cannot be recovered.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="flex-1 py-3 rounded-xl text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={doDelete}
+                  className="flex-1 py-3 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-all cursor-pointer"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add / Edit Modal */}
       {showItemForm && (

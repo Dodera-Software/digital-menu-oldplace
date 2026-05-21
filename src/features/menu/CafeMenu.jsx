@@ -19,23 +19,35 @@ import {
   GlassWater,
   Cookie,
   Sandwich,
+  Utensils,
+  Martini,
+  Pizza,
+  Milk,
+  Citrus,
+  Croissant,
+  CakeSlice,
+  Soup,
+  Salad,
+  Beef,
+  Drumstick,
+  Fish,
+  IceCream2,
 } from "lucide-react";
 import supabase from "../../utils/supabase";
 import { CafeLoader } from "../loader/CafeLoader";
 
-// Category icon mapping
-const categoryIcons = {
-  "Coffee": Coffee,
-  "Tea": Leaf,
-  "Hot Chocolate": Flame,
-  "Soft drinks": CupSoda,
-  "Freshly made": Sparkles,
-  "Beer": Beer,
-  "Wine": Wine,
-  "Spirits": FlaskConical,
-  "Shots": Zap,
-  "Long drinks": GlassWater,
-  "Snacks": Cookie,
+// Icon map — keyed by Lucide icon name string (stored in DB)
+const ICON_MAP = {
+  Coffee, Martini, Beer, Wine, CupSoda, GlassWater, FlaskConical, Milk, Citrus,
+  Leaf, Flame, Sparkles, Zap,
+  Pizza, Sandwich, Cookie, Croissant, CakeSlice, Soup, Salad, Beef, Drumstick, Fish, IceCream2, Utensils,
+};
+// Name-based fallback for existing categories before icon column was added
+const ICON_BY_NAME = {
+  "Coffee": Coffee, "Tea": Leaf, "Hot Chocolate": Flame,
+  "Soft drinks": CupSoda, "Freshly made": Sparkles,
+  "Beer": Beer, "Wine": Wine, "Spirits": FlaskConical,
+  "Shots": Zap, "Long drinks": GlassWater, "Snacks": Cookie,
 };
 
 const CafeMenu = () => {
@@ -55,7 +67,7 @@ const CafeMenu = () => {
         const [menuRes, detailsRes, categoriesRes] = await Promise.all([
           supabase.from("menuItems").select(`*, categories(name)`),
           supabase.from("cafeDetails").select(`*`).limit(1),
-          supabase.from("categories").select(`*`),
+          supabase.from("categories").select(`*`).order("id", { ascending: true }),
         ]);
 
         if (menuRes.error) throw menuRes.error;
@@ -69,7 +81,7 @@ const CafeMenu = () => {
           })) || []
         );
         setCafeDetails(detailsRes.data?.[0] || {});
-        setCategories(categoriesRes.data?.map((c) => c.name) || []);
+        setCategories(categoriesRes.data || []);
       } catch (err) {
         console.error("Failed to load menu:", err);
         setFetchError(err.message || "Failed to load menu data.");
@@ -303,13 +315,13 @@ const CafeMenu = () => {
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex gap-3 overflow-x-auto pb-1 sm:flex-wrap scroll-smooth">
             {categories.map((category, idx) => {
-              const IconComponent = categoryIcons[category] || Utensils;
+              const IconComponent = (category.icon && ICON_MAP[category.icon]) || ICON_BY_NAME[category.name] || Utensils;
               return (
                 <button
-                  key={category}
-                  onClick={() => setActiveCategory(category)}
+                  key={category.id || category.name}
+                  onClick={() => setActiveCategory(category.name)}
                   style={{ animationDelay: `${idx * 0.05}s` }}
-                  className={`category-chip category-chip-enter px-6 md:px-8 py-3 md:py-4 rounded-full font-sans font-600 transition-all duration-300 whitespace-nowrap focus:outline-none backdrop-blur-sm flex items-center gap-2.5 text-sm ${activeCategory === category
+                  className={`category-chip category-chip-enter px-6 md:px-8 py-3 md:py-4 rounded-full font-sans font-600 transition-all duration-300 whitespace-nowrap focus:outline-none backdrop-blur-sm flex items-center gap-2.5 text-sm ${activeCategory === category.name
                     ? darkMode
                       ? "bg-[#7a5c3f] text-white border border-[#7a5c3f] shadow-lg"
                       : "bg-[#8B5E3C] text-white border border-[#8B5E3C] shadow-lg"
@@ -319,7 +331,7 @@ const CafeMenu = () => {
                     }`}
                 >
                   <IconComponent className="category-icon w-4 h-4 md:w-5 md:h-5" />
-                  {category}
+                  {category.name}
                 </button>
               );
             })}
