@@ -319,7 +319,7 @@ const CafeMenu = () => {
               return (
                 <button
                   key={category.id || category.name}
-                  onClick={() => setActiveCategory(category.name)}
+                  onClick={() => { setActiveCategory(category.name); window.scrollTo(0, 0); }}
                   style={{ animationDelay: `${idx * 0.05}s` }}
                   className={`category-chip category-chip-enter px-6 md:px-8 py-3 md:py-4 rounded-full font-sans font-600 transition-all duration-300 whitespace-nowrap focus:outline-none backdrop-blur-sm flex items-center gap-2.5 text-sm ${activeCategory === category.name
                     ? darkMode
