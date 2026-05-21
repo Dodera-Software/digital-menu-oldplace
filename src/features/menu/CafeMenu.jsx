@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import oldplaceBg from "../../assets/images/oldplace_bg.png";
 import oldplaceLogo from "../../assets/images/oldplace_logo.png";
 import oldplaceInside from "../../assets/images/oldplace_inside.png";
@@ -48,18 +48,6 @@ const CafeMenu = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
-
-  const headerRef = useRef(null);
-  const [headerHeight, setHeaderHeight] = useState(0);
-
-  useEffect(() => {
-    const updateHeight = () => {
-      if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
-    };
-    updateHeight();
-    window.addEventListener('resize', updateHeight);
-    return () => window.removeEventListener('resize', updateHeight);
-  }, [isLoading]);
 
   useEffect(() => {
     async function fetchAll() {
@@ -245,9 +233,8 @@ const CafeMenu = () => {
 
       {/* Header */}
       <header
-        ref={headerRef}
         onContextMenu={(e) => e.preventDefault()}
-        className={`header-background sticky top-0 z-50 transition-all duration-500 border-b select-none ${darkMode ? "border-amber-900/20" : "border-amber-200/30"
+        className={`header-background md:sticky md:top-0 z-50 transition-all duration-500 border-b select-none ${darkMode ? "border-amber-900/20" : "border-amber-200/30"
           } backdrop-blur-xl`}
         style={{
           backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)), url(${oldplaceInside})`,
@@ -282,7 +269,7 @@ const CafeMenu = () => {
           </div>
 
           {/* Logo + Dark Mode Toggle */}
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col-reverse md:flex-col items-center gap-4">
             <img
               src={oldplaceLogo}
               alt="Old Place Logo"
@@ -305,46 +292,42 @@ const CafeMenu = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-12 md:py-16 relative z-10">
-        {/* Search & Filter Section */}
-        <div className="space-y-8 mb-12">
-          {/* Category Filter - sticky on mobile, normal on desktop */}
-          <div
-            className="sticky md:static z-40 -mx-6 px-6 py-2 md:p-0 md:mx-0 border-b md:border-0"
-            style={{
-              top: `${headerHeight}px`,
-              background: darkMode ? '#222222' : '#FFF2D7',
-              borderColor: darkMode ? 'rgba(217,119,6,0.15)' : 'rgba(139,94,60,0.12)',
-            }}
-          >
-            <div className="flex gap-3 overflow-x-auto pb-2 sm:pb-0 sm:flex-wrap scroll-smooth">
-              {categories.map((category, idx) => {
-                const IconComponent = categoryIcons[category] || Utensils;
-                return (
-                  <button
-                    key={category}
-                    onClick={() => setActiveCategory(category)}
-                    style={{
-                      animationDelay: `${idx * 0.05}s`,
-                    }}
-                    className={`category-chip category-chip-enter px-6 md:px-8 py-3 md:py-4 rounded-full font-sans font-600 transition-all duration-300 whitespace-nowrap focus:outline-none backdrop-blur-sm flex items-center gap-2.5 text-sm ${activeCategory === category
-                      ? darkMode
-                        ? "bg-[#7a5c3f] text-white border border-[#7a5c3f] shadow-lg"
-                        : "bg-[#8B5E3C] text-white border border-[#8B5E3C] shadow-lg"
-                      : darkMode
-                        ? "bg-slate-800/50 text-amber-200/80 border border-amber-600/20 hover:bg-slate-700/60 hover:border-amber-500/40 hover:text-amber-100"
-                        : "bg-white/60 text-brand border border-amber-200/40 hover:bg-white/80 hover:border-amber-300/60 hover:text-brand"
-                      }`}
-                  >
-                    <IconComponent className="category-icon w-4 h-4 md:w-5 md:h-5" />
-                    {category}
-                  </button>
-                );
-              })}
-            </div>
+      {/* Categories bar — sticky on mobile only, static on desktop */}
+      <div
+        className="sticky md:static top-0 z-40 border-b md:border-0"
+        style={{
+          background: darkMode ? '#222222' : '#FFF2D7',
+          borderColor: darkMode ? 'rgba(217,119,6,0.15)' : 'rgba(139,94,60,0.12)',
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 py-3">
+          <div className="flex gap-3 overflow-x-auto pb-1 sm:flex-wrap scroll-smooth">
+            {categories.map((category, idx) => {
+              const IconComponent = categoryIcons[category] || Utensils;
+              return (
+                <button
+                  key={category}
+                  onClick={() => setActiveCategory(category)}
+                  style={{ animationDelay: `${idx * 0.05}s` }}
+                  className={`category-chip category-chip-enter px-6 md:px-8 py-3 md:py-4 rounded-full font-sans font-600 transition-all duration-300 whitespace-nowrap focus:outline-none backdrop-blur-sm flex items-center gap-2.5 text-sm ${activeCategory === category
+                    ? darkMode
+                      ? "bg-[#7a5c3f] text-white border border-[#7a5c3f] shadow-lg"
+                      : "bg-[#8B5E3C] text-white border border-[#8B5E3C] shadow-lg"
+                    : darkMode
+                      ? "bg-slate-800/50 text-amber-200/80 border border-amber-600/20 hover:bg-slate-700/60 hover:border-amber-500/40 hover:text-amber-100"
+                      : "bg-white/60 text-brand border border-amber-200/40 hover:bg-white/80 hover:border-amber-300/60 hover:text-brand"
+                    }`}
+                >
+                  <IconComponent className="category-icon w-4 h-4 md:w-5 md:h-5" />
+                  {category}
+                </button>
+              );
+            })}
           </div>
         </div>
+      </div>
 
+      <main className="max-w-7xl mx-auto px-6 py-12 md:py-16 relative z-10">
         {/* Menu Grid */}
         {filteredItems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
