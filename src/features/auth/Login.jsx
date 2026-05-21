@@ -31,7 +31,6 @@ const Login = () => {
                 setMode('login');
             } else {
                 setMode('setup');
-                setEmail(ADMIN_EMAIL);
             }
         }
         checkSetup();
@@ -40,6 +39,7 @@ const Login = () => {
     const handleSetup = async (e) => {
         e.preventDefault();
         setError('');
+        if (email.toLowerCase() !== ADMIN_EMAIL) { setError('Invalid email or password.'); return; }
         if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
         if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
         setIsLoading(true);
@@ -100,9 +100,9 @@ const Login = () => {
                             <div className="relative">
                                 <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#8B5E3C', opacity: 0.6 }} />
                                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                                    disabled={mode === 'setup'} placeholder="admin@cafe.com" autoComplete="email"
-                                    className="w-full rounded-lg pl-9 pr-4 py-3 text-sm outline-none transition-all disabled:opacity-70 cursor-text"
-                                    style={{ ...inputStyle, background: mode === 'setup' ? 'rgba(139,94,60,0.06)' : inputStyle.background }} />
+                                    placeholder="admin@cafe.com" autoComplete="email"
+                                    className="w-full rounded-lg pl-9 pr-4 py-3 text-sm outline-none transition-all cursor-text"
+                                    style={inputStyle} />
                             </div>
                         </div>
 
@@ -115,7 +115,7 @@ const Login = () => {
                                 <input type={showPassword ? 'text' : 'password'} value={password}
                                     onChange={(e) => setPassword(e.target.value)} placeholder="••••••••"
                                     autoComplete={mode === 'setup' ? 'new-password' : 'current-password'}
-                                    className="w-full rounded-lg pl-9 pr-10 py-3 text-sm outline-none transition-all cursor-text"
+                                    className="w-full rounded-lg pl-9 pr-10 py-3 text-sm outline-none transition-all cursor-text focus:placeholder-transparent"
                                     style={inputStyle} />
                                 <button type="button" onClick={() => setShowPassword(v => !v)} tabIndex={-1}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer" style={{ color: '#8B5E3C', opacity: 0.6 }}>
@@ -132,7 +132,7 @@ const Login = () => {
                                     <input type={showConfirm ? 'text' : 'password'} value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••"
                                         autoComplete="new-password"
-                                        className="w-full rounded-lg pl-9 pr-10 py-3 text-sm outline-none transition-all cursor-text"
+                                        className="w-full rounded-lg pl-9 pr-10 py-3 text-sm outline-none transition-all cursor-text focus:placeholder-transparent"
                                         style={inputStyle} />
                                     <button type="button" onClick={() => setShowConfirm(v => !v)} tabIndex={-1}
                                         className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer" style={{ color: '#8B5E3C', opacity: 0.6 }}>
