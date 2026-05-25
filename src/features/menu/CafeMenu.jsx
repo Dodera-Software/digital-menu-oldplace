@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
-import oldplaceBg from "../../assets/images/oldplace_bg.png";
-import oldplaceLogo from "../../assets/images/oldplace_logo.png";
-import oldplaceInside from "../../assets/images/oldplace_inside.png";
+import oldplaceBg from "../../assets/images/oldplace_bg.webp";
+import oldplaceLogo from "../../assets/images/oldplace_logo.webp";
+import oldplaceInside from "../../assets/images/oldplace_inside.webp";
 import {
   Heart,
   Search,
