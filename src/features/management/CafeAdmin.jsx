@@ -7,8 +7,7 @@ import {
 import { CafeLoader } from '../loader/CafeLoader'
 import { useNavigate } from 'react-router';
 import supabase from '../../utils/supabase'
-
-const BUCKET_NAME = 'images';
+import { adminCall, adminUploadImage, clearSession } from '../../utils/adminApi'
 
 const AVAILABLE_ICONS = [
   // Drinks
@@ -204,29 +203,12 @@ const CafeAdmin = () => {
       setIsSaving(true);
       setErrorMessage('');
 
-      let result;
       const hoursForDB = (cafeDetails.hours || []).filter(h => h.day.trim() && h.time.trim());
       const dataToSave = { ...cafeDetails, hours: hoursForDB };
-      if (cafeDetails.id) {
-        // Update existing
-        result = await supabase
-          .from('cafeDetails')
-          .update(dataToSave)
-          .eq('id', cafeDetails.id);
-      } else {
-        // Insert new
-        result = await supabase
-          .from('cafeDetails')
-          .insert([dataToSave])
-          .select()
-          .single();
-
-        if (result.data) {
-          setCafeDetails(prev => ({ ...prev, id: result.data.id }));
-        }
+      const saved = await adminCall('saveCafeDetails', { payload: dataToSave });
+      if (saved?.id) {
+        setCafeDetails(prev => ({ ...prev, id: saved.id }));
       }
-
-      if (result.error) throw result.error;
       showSuccess('Cafe details saved successfully!');
     } catch (error) {
       console.error('Error saving cafe details:', error);
@@ -245,24 +227,8 @@ const CafeAdmin = () => {
       setIsUploadingImage(true);
       setErrorMessage('');
 
-      // Generate unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      // Upload to bucket
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(BUCKET_NAME)
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from(BUCKET_NAME)
-        .getPublicUrl(uploadData.path);
-
-      const imageUrl = urlData.publicUrl;
+      // Upload via the admin API (server mints a one-time signed upload URL).
+      const imageUrl = await adminUploadImage(file);
 
       if (isLogo) {
         handleCafeDetailsChange('logoUrl', imageUrl);
@@ -298,13 +264,7 @@ const CafeAdmin = () => {
       }
 
       // Insert new category
-      const { data, error } = await supabase
-        .from('categories')
-        .insert([{ name: trimmed, icon: editingCategoryIcon }])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await adminCall('addCategory', { name: trimmed, icon: editingCategoryIcon });
 
       setCategories([...categories, data]);
       setEditingCategoryName('');
@@ -327,12 +287,7 @@ const CafeAdmin = () => {
       setIsSaving(true);
       setErrorMessage('');
 
-      const { error } = await supabase
-        .from('categories')
-        .update({ name: trimmed, icon: editingCategoryIcon })
-        .eq('id', id);
-
-      if (error) throw error;
+      await adminCall('updateCategory', { id, name: trimmed, icon: editingCategoryIcon });
 
       setCategories(categories.map(cat =>
         cat.id === id ? { ...cat, name: trimmed, icon: editingCategoryIcon } : cat
@@ -400,12 +355,7 @@ const CafeAdmin = () => {
 
       if (editingId) {
         // Update existing item
-        const { error } = await supabase
-          .from('menuItems')
-          .update(itemData)
-          .eq('id', editingId);
-
-        if (error) throw error;
+        await adminCall('updateItem', { id: editingId, item: itemData });
 
         setMenuItems(menuItems.map(item =>
           item.id === editingId
@@ -415,13 +365,7 @@ const CafeAdmin = () => {
         showSuccess('Item updated successfully!');
       } else {
         // Add new item
-        const { data, error } = await supabase
-          .from('menuItems')
-          .insert([itemData])
-          .select()
-          .single();
-
-        if (error) throw error;
+        const data = await adminCall('addItem', { item: itemData });
 
         setMenuItems([data, ...menuItems].map(item => item.id === data.id
           ? { ...item, categories: categories.find(c => String(c.id) === String(data.category_id)) || null }
@@ -474,13 +418,13 @@ const CafeAdmin = () => {
       setIsSaving(true);
       setErrorMessage('');
       if (type === 'category') {
-        const { error } = await supabase.from('categories').delete().eq('id', id);
-        if (error) throw error;
+        await adminCall('deleteCategory', { id });
         setCategories(prev => prev.filter(c => c.id !== id));
+        // Items in this category were removed too (ON DELETE CASCADE).
+        setMenuItems(prev => prev.filter(i => i.category_id !== id));
         showSuccess('Category deleted!');
       } else {
-        const { error } = await supabase.from('menuItems').delete().eq('id', id);
-        if (error) throw error;
+        await adminCall('deleteItem', { id });
         setMenuItems(prev => prev.filter(i => i.id !== id));
         showSuccess('Item deleted!');
       }
@@ -528,7 +472,7 @@ const CafeAdmin = () => {
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-serif" style={{ color: '#8B5E3C' }}>Admin Dashboard</h1>
           <button
-            onClick={() => { sessionStorage.removeItem('admin_authenticated'); navigate('/login'); }}
+            onClick={() => { clearSession(); navigate('/login'); }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all hover:shadow-sm active:scale-95 cursor-pointer"
             style={{ background: 'rgba(139,94,60,0.08)', color: '#8B5E3C' }}
           >

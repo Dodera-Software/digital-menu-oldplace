@@ -16,7 +16,8 @@ export default async function handler(req, res) {
   );
 
   // Lightweight read just to register activity against the project.
-  const { error } = await supabase.from('settings').select('id').limit(1);
+  // Uses a publicly-readable table (anon has no access to `settings`).
+  const { error } = await supabase.from('categories').select('id').limit(1);
 
   if (error) {
     return res.status(500).json({ ok: false, error: error.message });
